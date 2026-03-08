@@ -128,7 +128,7 @@ Sistema web desarrollado en Flask para el **IEEE Computer Society del Instituto 
 - **[smtplib](https://docs.python.org/3/library/smtplib.html)**: Envío de correos electrónicos vía SMTP
 
 ### Gestión de Datos
-- **[Pandas 2.1.4](https://pandas.pydata.org/)**: Manipulación de datos y DataFrames
+- **[Pandas](https://pandas.pydata.org/)**: Manipulación de datos y DataFrames (`2.1.4` para Python < 3.14, `2.2+` para Python >= 3.14)
 - **[OpenPyXL 3.1.2](https://openpyxl.readthedocs.io/)**: Lectura/escritura de archivos Excel (`.xlsx`)
 
 ### Frontend
@@ -226,7 +226,8 @@ pip install -r requirements.txt
 
 **Dependencias instaladas:**
 - `Flask==3.0.0`: Framework web
-- `pandas==2.1.4`: Manipulación de datos
+- `pandas==2.1.4; python_version < "3.14"`: Manipulación de datos (Python 3.8 a 3.13)
+- `pandas>=2.2; python_version >= "3.14"`: Compatibilidad con Python 3.14+
 - `openpyxl==3.1.2`: Lectura/escritura de Excel
 
 ### 5. Verificar Instalación
@@ -330,7 +331,8 @@ Programa contactos/
 │
 ├── 📄 requirements.txt                # Dependencias de Python
 │   ├── Flask==3.0.0
-│   ├── pandas==2.1.4
+│   ├── pandas==2.1.4; python_version < "3.14"
+│   ├── pandas>=2.2; python_version >= "3.14"
 │   └── openpyxl==3.1.2
 │
 ├── 📄 README.md                       # Este archivo
@@ -703,6 +705,22 @@ El sistema implementa:
 # Asegúrate de tener el entorno virtual activado
 & ".venv\Scripts\Activate.ps1"
 pip install -r requirements.txt
+```
+
+### Error: "No module named 'pandas'" en Python 3.14+
+
+**Causa:** `pandas==2.1.4` no es compatible con Python 3.14 y la instalación puede fallar.
+
+**Solución:** usar `requirements.txt` actualizado con marcadores por versión de Python:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Si instalaste manualmente una versión fija de pandas antes, reinstala con:
+
+```powershell
+python -m pip install --upgrade "pandas>=2.2"
 ```
 
 ### Error: "Permission denied" al activar entorno virtual
