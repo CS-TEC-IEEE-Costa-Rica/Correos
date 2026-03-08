@@ -21,13 +21,14 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 # CONFIGURACIÓN DEL SISTEMA
 # ==============================================================================
 
-# Credenciales SMTP - Modificar antes de usar en producción
-EMAIL_REMITENTE = ""
-EMAIL_PASSWORD = ""
+# Credenciales SMTP (local): usa variables de entorno si existen, si no usa valores por defecto.
+EMAIL_REMITENTE = os.getenv("EMAIL_REMITENTE", "julio.barrios@ieee.org")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "kbzm sovh apgs ulah")
+EMAIL_PASSWORD = EMAIL_PASSWORD.replace(" ", "")
 
 # Configuración del servidor SMTP (por defecto Gmail con TLS)
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 
 # Rutas de archivos
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,9 +36,10 @@ EXCEL_PATH = os.path.join(BASE_DIR, "contactos.xlsx")
 IMAGES_DIR = os.path.join(BASE_DIR, "images")
 IEEE_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee.png")
 IEEE_CS_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee cs imagen.png")
+IEEE_CR_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee costa rica.png")
 
-# Clave secreta para sesiones Flask (cambiar en producción)
-SECRET_KEY = "ieee-correos-institucionales-clave-secreta-2026"
+# Clave secreta para sesiones Flask
+SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # ==============================================================================
 # INICIALIZACIÓN DE LA APLICACIÓN FLASK
@@ -441,6 +443,12 @@ def enviar_correo(destinatario, empresa, contacto):
     Genera el saludo dinámico y el cuerpo HTML institucional.
     Retorna un diccionario con el resultado del envío.
     """
+    if not EMAIL_REMITENTE or not EMAIL_PASSWORD:
+        return {
+            "exito": False,
+            "mensaje": "Faltan credenciales SMTP. Configure EMAIL_REMITENTE y EMAIL_PASSWORD en variables de entorno."
+        }
+
     # Verificar disponibilidad de logos para incrustarlos en el HTML.
     incluir_logo_ieee = os.path.exists(IEEE_LOGO_PATH)
     incluir_logo_ieee_cs = os.path.exists(IEEE_CS_LOGO_PATH)
@@ -494,7 +502,382 @@ def enviar_correo(destinatario, empresa, contacto):
         return {"exito": True, "mensaje": f"Correo enviado exitosamente a {destinatario}"}
 
     except smtplib.SMTPAuthenticationError:
-        return {"exito": False, "mensaje": "Error de autenticación SMTP. Verifique las credenciales."}
+        return {
+            "exito": False,
+            "mensaje": "Error de autenticacion SMTP (535). Verifique EMAIL_REMITENTE, EMAIL_PASSWORD (contrasena de aplicacion vigente) y SMTP_SERVER/SMTP_PORT."
+        }
+    except smtplib.SMTPRecipientsRefused:
+        return {"exito": False, "mensaje": f"El destinatario {destinatario} fue rechazado por el servidor."}
+    except smtplib.SMTPServerDisconnected:
+        return {"exito": False, "mensaje": "El servidor SMTP se desconectó inesperadamente."}
+    except smtplib.SMTPException as e:
+        return {"exito": False, "mensaje": f"Error SMTP: {str(e)}"}
+    except ConnectionRefusedError:
+        return {"exito": False, "mensaje": "No se pudo conectar al servidor SMTP. Verifique la configuración."}
+    except Exception as e:
+        return {"exito": False, "mensaje": f"Error inesperado al enviar correo: {str(e)}"}
+
+
+def procesar_listas_para_email(html_content, viñetas_color="#ffd166"):
+    """
+    Procesa el HTML generado por Quill para convertir listas <ul> y <ol> 
+    en un formato compatible con clientes de correo electrónico.
+    Reemplaza listas con tablas HTML que tienen estilos inline.
+    """
+    import re
+    
+    def convertir_ul(match):
+        """Convierte <ul>...</ul> en tablas HTML con viñetas coloreadas."""
+        contenido = match.group(1)
+        # Extraer cada <li>...</li>
+        items = re.findall(r'<li[^>]*>(.*?)</li>', contenido, re.DOTALL)
+        
+        tablas = []
+        for item in items:
+            tabla = (
+                f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 8px 0;">'
+                f'<tr>'
+                f'<td style="width: 18px; vertical-align: top; font-size: 15px; line-height: 1.7; color: {viñetas_color}; font-weight: 700; padding: 0;">&#8226;</td>'
+                f'<td style="vertical-align: top; font-size: 15px; line-height: 1.7; color: #ffffff; padding: 0;">{item.strip()}</td>'
+                f'</tr>'
+                f'</table>'
+            )
+            tablas.append(tabla)
+        
+        return '\n'.join(tablas)
+    
+    def convertir_ol(match):
+        """Convierte <ol>...</ol> en tablas HTML con números coloreados."""
+        contenido = match.group(1)
+        # Extraer cada <li>...</li>
+        items = re.findall(r'<li[^>]*>(.*?)</li>', contenido, re.DOTALL)
+        
+        tablas = []
+        for i, item in enumerate(items, start=1):
+            tabla = (
+                f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 8px 0;">'
+                f'<tr>'
+                f'<td style="width: 28px; vertical-align: top; font-size: 15px; line-height: 1.7; color: {viñetas_color}; font-weight: 700; padding: 0;">{i}.</td>'
+                f'<td style="vertical-align: top; font-size: 15px; line-height: 1.7; color: #ffffff; padding: 0;">{item.strip()}</td>'
+                f'</tr>'
+                f'</table>'
+            )
+            tablas.append(tabla)
+        
+        return '\n'.join(tablas)
+    
+    # Procesar listas no ordenadas
+    html_content = re.sub(r'<ul[^>]*>(.*?)</ul>', convertir_ul, html_content, flags=re.DOTALL)
+    
+    # Procesar listas ordenadas
+    html_content = re.sub(r'<ol[^>]*>(.*?)</ol>', convertir_ol, html_content, flags=re.DOTALL)
+    
+    return html_content
+
+
+def generar_cuerpo_html_personalizado(detalle, firma, imagenes_seleccionadas, encabezado_titulo="", 
+                                       encabezado_subtitulo="", firma_color="#dce8f4", 
+                                       firma_estilos=None, viñetas_color="#ffd166",
+                                       color_encabezado="#00629B", color_cuerpo="#0b3f66"):
+    """
+    Genera el cuerpo del correo personalizado en formato HTML con diseño institucional.
+    
+    Args:
+        detalle: El contenido HTML principal del correo (puede contener etiquetas HTML con estilos)
+        firma: La firma personalizada (puede ser vacía para usar la predeterminada)
+        imagenes_seleccionadas: Lista de imágenes a incluir ['ieee', 'ieee_cr', 'ieee_cs']
+        encabezado_titulo: Título personalizado del encabezado
+        encabezado_subtitulo: Subtítulo personalizado del encabezado
+        firma_color: Color del texto de la firma
+        firma_estilos: Lista con estilos de firma ['negrita', 'cursiva']
+        viñetas_color: Color de los bullet points y números de lista
+        color_encabezado: Color de fondo del encabezado
+        color_cuerpo: Color de fondo del cuerpo del correo
+    """
+    if firma_estilos is None:
+        firma_estilos = []
+    
+    # Usar valores predeterminados si no se proporcionan
+    if not encabezado_titulo:
+        encabezado_titulo = "IEEE Computer Society"
+    # El subtítulo puede ir vacío, no forzamos un valor por defecto
+    
+    # Procesar el HTML del detalle para convertir listas en formato compatible con email
+    detalle_procesado = procesar_listas_para_email(detalle, viñetas_color)
+    
+    # Procesar el HTML del detalle para convertir listas en formato compatible con email
+    detalle_procesado = procesar_listas_para_email(detalle, viñetas_color)
+    
+    # Generar estilos CSS para la firma
+    estilo_firma = ""
+    if 'negrita' in firma_estilos:
+        estilo_firma += "font-weight: 700; "
+    if 'cursiva' in firma_estilos:
+        estilo_firma += "font-style: italic; "
+    
+    # Generar HTML de las imágenes según la cantidad seleccionada
+    imagenes_html = ""
+    
+    if len(imagenes_seleccionadas) == 1:
+        # Una sola imagen, a la izquierda
+        img_src = f"cid:logo_{imagenes_seleccionadas[0]}"
+        imagenes_html = f"""
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px;">
+                <tr>
+                    <td align="left" style="width: 100%; vertical-align: middle; padding-left: 0; padding-right: 0;">
+                        <img src="{img_src}" alt="{imagenes_seleccionadas[0]}" style="display: block; width: 100%; max-width: 180px; height: auto;">
+                    </td>
+                    <td style="width: 100%;"></td>
+                </tr>
+            </table>
+        """
+    elif len(imagenes_seleccionadas) == 2:
+        # Dos imágenes, una a la izquierda y otra a la derecha
+        img_src_1 = f"cid:logo_{imagenes_seleccionadas[0]}"
+        img_src_2 = f"cid:logo_{imagenes_seleccionadas[1]}"
+        imagenes_html = f"""
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px;">
+                <tr>
+                    <td align="left" style="width: 50%; vertical-align: middle; padding-left: 12px; padding-right: 18px;">
+                        <img src="{img_src_1}" alt="{imagenes_seleccionadas[0]}" style="display: block; width: 100%; max-width: 160px; height: auto;">
+                    </td>
+                    <td align="right" style="width: 50%; vertical-align: middle; padding-left: 18px; padding-right: 12px;">
+                        <img src="{img_src_2}" alt="{imagenes_seleccionadas[1]}" style="display: block; width: 100%; max-width: 160px; height: auto;">
+                    </td>
+                </tr>
+            </table>
+        """
+    elif len(imagenes_seleccionadas) == 3:
+        # Tres imágenes distribuidas: izquierda, centro, derecha
+        img_src_1 = f"cid:logo_{imagenes_seleccionadas[0]}"
+        img_src_2 = f"cid:logo_{imagenes_seleccionadas[1]}"
+        img_src_3 = f"cid:logo_{imagenes_seleccionadas[2]}"
+        imagenes_html = f"""
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px;">
+                <tr>
+                    <td align="left" style="width: 33.33%; vertical-align: middle; padding-left: 12px; padding-right: 8px;">
+                        <img src="{img_src_1}" alt="{imagenes_seleccionadas[0]}" style="display: block; width: 100%; max-width: 130px; height: auto;">
+                    </td>
+                    <td align="center" style="width: 33.33%; vertical-align: middle; padding-left: 8px; padding-right: 8px;">
+                        <img src="{img_src_2}" alt="{imagenes_seleccionadas[1]}" style="display: block; width: 100%; max-width: 130px; height: auto; margin: 0 auto;">
+                    </td>
+                    <td align="right" style="width: 33.33%; vertical-align: middle; padding-left: 8px; padding-right: 12px;">
+                        <img src="{img_src_3}" alt="{imagenes_seleccionadas[2]}" style="display: block; width: 100%; max-width: 130px; height: auto;">
+                    </td>
+                </tr>
+            </table>
+        """
+    
+    # Firma predeterminada si no se proporciona una personalizada
+    if not firma or not firma.strip():
+        firma = """Julio Ricardo Barrios Amador
+Section Student Representative (SSR) | IEEE Costa Rica Section
+Vocal 2 | IEEE Computer Society - Instituto Tecnológico de Costa Rica
+IEEE Member: 101781510
+julio.barrios@ieee.org"""
+    
+    # Convertir la firma en párrafos HTML con estilos personalizados
+    lineas_firma = firma.strip().split('\n')
+    firma_html = ""
+    for i, linea in enumerate(lineas_firma):
+        if i == 0:
+            # Primera línea (nombre) siempre en negrita
+            firma_html += f"""
+                <p style="margin: 0 0 2px 0; font-size: 15px; font-weight: 700; color: {firma_color}; {estilo_firma}">
+                    {linea}
+                </p>
+            """
+        elif '@' in linea and 'ieee.org' in linea:
+            # Línea con correo en color especial
+            firma_html += f"""
+                <p style="margin: 6px 0 0 0; font-size: 12px; color: #00d4ff; letter-spacing: 0.3px; font-weight: 700;">
+                    {linea}
+                </p>
+            """
+        else:
+            # Resto de líneas
+            firma_html += f"""
+                <p style="margin: 0 0 1px 0; font-size: 13px; color: {firma_color}; letter-spacing: 0.3px; {estilo_firma}">
+                    {linea}
+                </p>
+            """
+    
+    # El detalle ahora ya viene como HTML del editor contenteditable
+    # No es necesario convertir saltos de línea
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            /* Estilos para enlaces visibles sobre fondo oscuro */
+            a {{
+                color: #00d4ff;
+                text-decoration: underline;
+            }}
+            
+            a:hover {{
+                color: #66e3ff;
+            }}
+            
+            @media only screen and (max-width: 620px) {{
+                .email-card {{
+                    width: 100% !important;
+                }}
+
+                .header-cell {{
+                    padding: 20px 16px !important;
+                }}
+
+                .logo-cell-left {{
+                    padding-left: 8px !important;
+                    padding-right: 12px !important;
+                }}
+
+                .logo-cell-right {{
+                    padding-left: 12px !important;
+                    padding-right: 8px !important;
+                }}
+
+                .logo-cell-left img,
+                .logo-cell-right img {{
+                    max-width: 110px !important;
+                }}
+            }}
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f6f9; padding: 30px 0;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" class="email-card" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                        <!-- Header institucional -->
+                        <tr>
+                            <td class="header-cell" style="background-color: {color_encabezado}; padding: 28px 40px; text-align: center;">
+                                {imagenes_html}
+                                <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 600; letter-spacing: 0.5px;">
+                                    {encabezado_titulo}
+                                </h1>
+                                {f'<p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.85); font-size: 13px; letter-spacing: 0.3px;">{encabezado_subtitulo}</p>' if encabezado_subtitulo else ''}
+                            </td>
+                        </tr>
+                        <!-- Cuerpo del correo -->
+                        <tr>
+                            <td style="padding: 36px 40px 20px 40px; background-color: {color_cuerpo};">
+                                <div style="font-size: 15px; line-height: 1.7; color: #ffffff;">
+                                    {detalle_procesado}
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Cierre formal -->
+                        <tr>
+                            <td style="padding: 0 40px 36px 40px; background-color: {color_cuerpo};">
+                                <p style="margin: 0 0 4px 0; font-size: 15px; color: #ffffff;">
+                                    Atentamente,
+                                </p>
+                                <br>
+                                {firma_html}
+                            </td>
+                        </tr>
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #f8f9fa; padding: 18px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                                <p style="margin: 0; font-size: 11px; color: #adb5bd; letter-spacing: 0.2px;">
+                                    &copy; {datetime.now().year} IEEE Computer Society – Instituto Tecnológico de Costa Rica &mdash; Todos los derechos reservados.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    return html
+
+
+def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, imagenes_seleccionadas,
+                                    encabezado_titulo="", encabezado_subtitulo="",
+                                    firma_color="#dce8f4", firma_estilos=None, viñetas_color="#ffd166",
+                                    color_encabezado="#00629B", color_cuerpo="#0b3f66"):
+    """
+    Envía un correo electrónico personalizado usando SMTP con TLS.
+    Permite seleccionar las imágenes del encabezado y personalizar estilos de firma.
+    El contenido HTML es generado directamente del editor (contenteditable).
+    Retorna un diccionario con el resultado del envío.
+    """
+    if not EMAIL_REMITENTE or not EMAIL_PASSWORD:
+        return {
+            "exito": False,
+            "mensaje": "Faltan credenciales SMTP. Configure EMAIL_REMITENTE y EMAIL_PASSWORD en variables de entorno."
+        }
+
+    if firma_estilos is None:
+        firma_estilos = []
+
+    # Generar contenido del correo
+    cuerpo_html = generar_cuerpo_html_personalizado(
+        detalle=detalle,
+        firma=firma,
+        imagenes_seleccionadas=imagenes_seleccionadas,
+        encabezado_titulo=encabezado_titulo,
+        encabezado_subtitulo=encabezado_subtitulo,
+        firma_color=firma_color,
+        firma_estilos=firma_estilos,
+        viñetas_color=viñetas_color,
+        color_encabezado=color_encabezado,
+        color_cuerpo=color_cuerpo
+    )
+
+    # Usamos multipart/related para soportar imágenes inline referenciadas por CID.
+    mensaje = MIMEMultipart("related")
+    mensaje["From"] = EMAIL_REMITENTE
+    mensaje["To"] = destinatario
+    mensaje["Subject"] = asunto
+
+    # El HTML vive dentro de multipart/alternative para compatibilidad con clientes.
+    parte_alternativa = MIMEMultipart("alternative")
+    parte_html = MIMEText(cuerpo_html, "html", "utf-8")
+    parte_alternativa.attach(parte_html)
+    mensaje.attach(parte_alternativa)
+
+    # Mapeo de nombres de imágenes a rutas de archivo
+    mapeo_imagenes = {
+        'ieee': IEEE_LOGO_PATH,
+        'ieee_cr': IEEE_CR_LOGO_PATH,
+        'ieee_cs': IEEE_CS_LOGO_PATH
+    }
+
+    # Adjuntar las imágenes seleccionadas
+    for img_key in imagenes_seleccionadas:
+        img_path = mapeo_imagenes.get(img_key)
+        if img_path and os.path.exists(img_path):
+            with open(img_path, "rb") as img_file:
+                img_data = MIMEImage(img_file.read())
+                img_data.add_header("Content-ID", f"<logo_{img_key}>")
+                img_data.add_header("Content-Disposition", "inline", filename=f"{img_key}.png")
+                mensaje.attach(img_data)
+
+    try:
+        # Conexión SMTP con TLS
+        servidor = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        servidor.ehlo()
+        servidor.starttls()
+        servidor.ehlo()
+        servidor.login(EMAIL_REMITENTE, EMAIL_PASSWORD)
+        servidor.sendmail(EMAIL_REMITENTE, destinatario, mensaje.as_string())
+        servidor.quit()
+
+        return {"exito": True, "mensaje": f"Correo enviado exitosamente a {destinatario}"}
+
+    except smtplib.SMTPAuthenticationError:
+        return {
+            "exito": False,
+            "mensaje": "Error de autenticación SMTP (535). Verifique EMAIL_REMITENTE, EMAIL_PASSWORD (contraseña de aplicación vigente) y SMTP_SERVER/SMTP_PORT."
+        }
     except smtplib.SMTPRecipientsRefused:
         return {"exito": False, "mensaje": f"El destinatario {destinatario} fue rechazado por el servidor."}
     except smtplib.SMTPServerDisconnected:
@@ -512,9 +895,18 @@ def enviar_correo(destinatario, empresa, contacto):
 # ==============================================================================
 
 @app.route("/")
-def dashboard():
+def dashboard_principal():
     """
-    Ruta principal - Dashboard de gestión de contactos.
+    Ruta principal - Dashboard con opciones principales.
+    Muestra botones para gestión de contactos y correos personalizados.
+    """
+    return render_template("dashboard.html", year=datetime.now().year)
+
+
+@app.route("/contactos")
+def contactos():
+    """
+    Ruta de gestión de contactos - Dashboard de gestión de contactos.
     Muestra la tabla de contactos, estadísticas y formulario de agregar.
     """
     df = leer_contactos().fillna("")
@@ -522,7 +914,7 @@ def dashboard():
     # Parámetros de filtro y paginación
     busqueda = request.args.get("q", "").strip()
     estado = request.args.get("estado", "todos").strip().lower()
-    ordenar_por = request.args.get("sort", "empresa").strip().lower()
+    ordenar_por = request.args.get("sort", "excel").strip().lower()
     direccion = request.args.get("dir", "asc").strip().lower()
 
     try:
@@ -558,7 +950,10 @@ def dashboard():
         direccion = "asc"
 
     ascendente = direccion == "asc"
-    if ordenar_por == "estado":
+    if ordenar_por == "excel":
+        # Respeta el orden original del Excel usando el índice (id).
+        df = df.sort_values(by=["id"], ascending=[ascendente], kind="mergesort")
+    elif ordenar_por == "estado":
         df = df.sort_values(by=["estado_envio", "empresa"], ascending=[ascendente, True], kind="mergesort")
     elif ordenar_por == "fecha_envio":
         # Para fecha vacía, usamos un extremo para que queden al final según el orden.
@@ -568,9 +963,11 @@ def dashboard():
         else:
             fecha_tmp = fecha_tmp.fillna(pd.Timestamp.min)
         df = df.assign(_fecha_sort=fecha_tmp).sort_values(by=["_fecha_sort", "empresa"], ascending=[ascendente, True], kind="mergesort").drop(columns=["_fecha_sort"])
-    else:
-        ordenar_por = "empresa"
+    elif ordenar_por == "empresa":
         df = df.sort_values(by=["empresa", "id"], ascending=[ascendente, True], kind="mergesort")
+    else:
+        ordenar_por = "excel"
+        df = df.sort_values(by=["id"], ascending=[ascendente], kind="mergesort")
 
     total_filtrados = len(df)
     tam_pagina = 50
@@ -615,6 +1012,7 @@ def dashboard():
     )
 
 
+
 @app.route("/agregar", methods=["POST"])
 def agregar():
     """
@@ -628,16 +1026,16 @@ def agregar():
     # Validar campos obligatorios
     if not empresa:
         flash("El campo 'Empresa' es obligatorio.", "error")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("contactos"))
 
     if not correo:
         flash("El campo 'Correo' es obligatorio.", "error")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("contactos"))
 
     # Validar formato de correo
     if not validar_correo(correo):
         flash("El formato del correo electrónico no es válido.", "error")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("contactos"))
 
     # Intentar agregar
     if agregar_contacto(empresa, contacto, correo):
@@ -645,7 +1043,7 @@ def agregar():
     else:
         flash(f"El correo '{correo}' ya existe en el archivo.", "warning")
 
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("contactos"))
 
 
 @app.route("/enviar/<int:id>")
@@ -658,7 +1056,7 @@ def enviar(id):
 
     if not contacto:
         flash("Contacto no encontrado.", "error")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("contactos"))
 
     # Ejecutar envío de correo
     resultado = enviar_correo(
@@ -676,7 +1074,7 @@ def enviar(id):
         # No cambiamos el estado si falla
         flash(resultado["mensaje"], "error")
 
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("contactos"))
 
 
 @app.route("/vista_previa/<int:id>")
@@ -719,7 +1117,7 @@ def reimportar():
     else:
         flash("Error al actualizar el archivo Excel.", "error")
 
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("contactos"))
 
 
 @app.route("/eliminar/<int:id>")
@@ -731,14 +1129,99 @@ def eliminar(id):
 
     if not contacto:
         flash("Contacto no encontrado.", "error")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("contactos"))
 
     if eliminar_contacto(id):
         flash(f"Contacto '{contacto['empresa']}' eliminado correctamente.", "success")
     else:
         flash("Error al eliminar el contacto.", "error")
 
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("contactos"))
+
+
+@app.route("/correo_personalizado", methods=["GET"])
+def correo_personalizado():
+    """
+    Ruta para mostrar el formulario de correo personalizado.
+    Permite crear y enviar correos con formato institucional personalizable.
+    """
+    return render_template("correo_personalizado.html")
+
+
+@app.route("/enviar_correo_personalizado", methods=["POST"])
+def enviar_correo_personalizado():
+    """
+    Ruta POST para procesar y enviar un correo personalizado.
+    Valida los datos y envía el correo con el formato institucional personalizable.
+    """
+    destinatario = request.form.get("destinatario", "").strip().lower()
+    asunto = request.form.get("asunto", "").strip()
+    detalle = request.form.get("detalle", "").strip()
+    firma = request.form.get("firma", "").strip()
+    
+    # Nuevos campos personalizables
+    encabezado_titulo = request.form.get("encabezado_titulo", "IEEE Computer Society").strip()
+    encabezado_subtitulo = request.form.get("encabezado_subtitulo", "").strip()
+    
+    # Colores de firma
+    firma_color = request.form.get("firma_color", "#dce8f4").strip()
+    viñetas_color = request.form.get("viñetas_color", "#ffd166").strip()
+    
+    # Colores de encabezado y cuerpo del correo
+    color_encabezado = request.form.get("color_encabezado", "#00629B").strip()
+    color_cuerpo = request.form.get("color_cuerpo", "#0b3f66").strip()
+    
+    # Estilos de firma
+    firma_estilos = request.form.getlist("firma_estilos")
+    
+    # Obtener imágenes seleccionadas (pueden ser múltiples)
+    imagenes_seleccionadas = request.form.getlist("imagenes")
+    
+    # Validar campos obligatorios
+    if not destinatario:
+        flash("El campo 'Destinatario' es obligatorio.", "error")
+        return redirect(url_for("correo_personalizado"))
+    
+    if not asunto:
+        flash("El campo 'Asunto' es obligatorio.", "error")
+        return redirect(url_for("correo_personalizado"))
+    
+    if not detalle:
+        flash("El campo 'Mensaje' es obligatorio.", "error")
+        return redirect(url_for("correo_personalizado"))
+    
+    # Validar formato de correo
+    if not validar_correo(destinatario):
+        flash("El formato del correo electrónico del destinatario no es válido.", "error")
+        return redirect(url_for("correo_personalizado"))
+    
+    # Validar que haya al menos una imagen seleccionada
+    if not imagenes_seleccionadas:
+        flash("Debe seleccionar al menos una imagen para el encabezado.", "warning")
+        return redirect(url_for("correo_personalizado"))
+    
+    # Ejecutar envío de correo con los parámetros personalizables
+    resultado = enviar_correo_personalizado_smtp(
+        destinatario=destinatario,
+        asunto=asunto,
+        detalle=detalle,
+        firma=firma,
+        imagenes_seleccionadas=imagenes_seleccionadas,
+        encabezado_titulo=encabezado_titulo,
+        encabezado_subtitulo=encabezado_subtitulo,
+        firma_color=firma_color,
+        firma_estilos=firma_estilos,
+        viñetas_color=viñetas_color,
+        color_encabezado=color_encabezado,
+        color_cuerpo=color_cuerpo
+    )
+    
+    if resultado["exito"]:
+        flash(f"Correo enviado exitosamente a {destinatario}", "success")
+        return redirect(url_for("dashboard_principal"))
+    else:
+        flash(resultado["mensaje"], "error")
+        return redirect(url_for("correo_personalizado"))
 
 
 # ==============================================================================

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEEE — Correo Personalizado</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- Quill.js CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    
+    <style>
+        .correo-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .correo-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .correo-title {
+            color: #00629B;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .correo-subtitle {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #00629B;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #004A7C;
+        }
+
+        .correo-form-card {
+            background: #ffffff;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .form-section {
+            margin-bottom: 32px;
+        }
+
+        .form-section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #00629B;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .form-group-custom {
+            margin-bottom: 20px;
+        }
+
+        .form-label-custom {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-input-custom {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-input-custom:focus {
+            outline: none;
+            border-color: #00629B;
+            box-shadow: 0 0 0 3px rgba(0,98,155,0.1);
+        }
+
+        .form-textarea-custom {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-textarea-custom:focus {
+            outline: none;
+            border-color: #00629B;
+            box-shadow: 0 0 0 3px rgba(0,98,155,0.1);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            border-color: #00629B;
+            background-color: #f8f9fa;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .checkbox-item input[type="checkbox"]:checked + label {
+            color: #00629B;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #00629B 0%, #004A7C 100%);
+            color: white;
+            padding: 14px 36px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #004A7C 0%, #00629B 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,98,155,0.3);
+        }
+
+        .btn-preview {
+            background: #6c757d;
+            color: white;
+            padding: 14px 36px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-preview:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108,117,125,0.3);
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        .form-help-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        /* Modal para vista previa */
+        .modal-preview {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+
+        .modal-preview-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-preview-header {
+            background: linear-gradient(135deg, #00629B 0%, #004A7C 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-preview-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .modal-preview-close {
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background: none;
+            transition: transform 0.3s ease;
+        }
+
+        .modal-preview-close:hover {
+            transform: scale(1.2);
+        }
+
+        .modal-preview-body {
+            padding: 30px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Estilos para el editor Quill */
+        #editor-contenido-wrapper {
+            margin-bottom: 12px;
+        }
+
+        .ql-toolbar {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6 !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .ql-container {
+            border: 2px solid #dee2e6 !important;
+            border-top: none !important;
+            border-radius: 0 0 6px 6px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .ql-editor {
+            min-height: 300px;
+            padding: 20px;
+        }
+
+        .ql-editor:focus {
+            outline: none;
+        }
+
+        /* Estilizar los botones y controles de Quill */
+        .ql-toolbar button:hover,
+        .ql-toolbar button:focus,
+        .ql-toolbar .ql-picker-label:hover,
+        .ql-toolbar .ql-picker-item:hover {
+            color: #00629B !important;
+        }
+
+        .ql-toolbar button.ql-active,
+        .ql-toolbar .ql-picker-label.ql-active,
+        .ql-toolbar .ql-picker-item.ql-selected {
+            color: #00629B !important;
+        }
+
+        .ql-stroke {
+            stroke: #495057;
+        }
+
+        .ql-fill {
+            fill: #495057;
+        }
+
+        .ql-toolbar button:hover .ql-stroke,
+        .ql-toolbar button.ql-active .ql-stroke,
+        .ql-toolbar .ql-picker-label:hover .ql-stroke,
+        .ql-toolbar .ql-picker-label.ql-active .ql-stroke {
+            stroke: #00629B;
+        }
+
+        .ql-toolbar button:hover .ql-fill,
+        .ql-toolbar button.ql-active .ql-fill,
+        .ql-toolbar .ql-picker-label:hover .ql-fill,
+        .ql-toolbar .ql-picker-label.ql-active .ql-fill {
+            fill: #00629B;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER INSTITUCIONAL -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-logo">
+                <h1>IEEE</h1>
+                <span class="header-divider"></span>
+                <p>Sistema de Correos Institucionales</p>
+            </div>
+            <div class="header-badge">Student Branch</div>
+        </div>
+    </header>
+
+    <!-- BOTÓN VOLVER AL DASHBOARD -->
+    <div style="position: absolute; top: 20px; right: 20px;">
+        <a href="{{ url_for('dashboard_principal') }}" class="btn btn-secondary" title="Volver al Dashboard" style="padding: 10px 16px; font-size: 14px;">
+            ← Dashboard
+        </a>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="correo-container">
+        <a href="{{ url_for('dashboard_principal') }}" class="back-button">← Volver al Dashboard</a>
+
+        <div class="correo-header">
+            <h2 class="correo-title">Correo Personalizado</h2>
+            <p class="correo-subtitle">Configure y envíe correos electrónicos con formato profesional institucional</p>
+        </div>
+
+        <!-- MENSAJES FLASH -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">
+                            <span class="flash-icon">
+                                {% if category == 'success' %}&#10004;{% elif category == 'error' %}&#10006;{% elif category == 'warning' %}&#9888;{% else %}&#8505;{% endif %}
+                            </span>
+                            <span class="flash-text">{{ message }}</span>
+                            <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="correo-form-card">
+            <form action="{{ url_for('enviar_correo_personalizado') }}" method="POST" id="correoForm">
+                
+                <!-- Sección: Información del Destinatario -->
+                <div class="form-section">
+                    <h3 class="form-section-title">📧 Información del Destinatario</h3>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom" for="destinatario">
+                            Correo Electrónico del Destinatario <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="email" 
+                            id="destinatario" 
+                            name="destinatario" 
+                            class="form-input-custom"
+                            placeholder="ejemplo@empresa.com"
+                            required
+                        >
+                        <p class="form-help-text">Ingrese el correo electrónico del destinatario</p>
+                    </div>
+
+                    <div class="form-group-custom">
+                        <label class="form-label-custom" for="asunto">
+                            Asunto del Correo <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="asunto" 
+                            name="asunto" 
+                            class="form-input-custom"
+                            placeholder="Escriba el asunto del correo"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- Sección: Encabezado Personalizable -->
+                <div class="form-section">
+                    <h3 class="form-section-title">🎨 Encabezado Personalizable</h3>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom" for="encabezado_titulo">
+                            Título <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="encabezado_titulo" 
+                            name="encabezado_titulo" 
+                            class="form-input-custom"
+                            placeholder="IEEE Computer Society"
+                            value="IEEE Computer Society"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group-custom">
+                        <label class="form-label-custom" for="encabezado_subtitulo">
+                            Subtítulo
+                        </label>
+                        <input 
+                            type="text" 
+                            id="encabezado_subtitulo" 
+                            name="encabezado_subtitulo" 
+                            class="form-input-custom"
+                            placeholder="Instituto Tecnológico de Costa Rica — Campus Central Cartago"
+                            value="Instituto Tecnológico de Costa Rica — Campus Central Cartago"
+                        >
+                        <p class="form-help-text">Opcional - puede dejarlo vacío si prefiere</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
+                        <div class="form-group-custom">
+                            <label class="form-label-custom" for="color_encabezado">Color del Encabezado</label>
+                            <input 
+                                type="color" 
+                                id="color_encabezado" 
+                                name="color_encabezado" 
+                                class="form-input-custom"
+                                value="#00629B"
+                                style="height: 44px; cursor: pointer;"
+                            >
+                            <p class="form-help-text">Color de fondo del encabezado</p>
+                        </div>
+
+                        <div class="form-group-custom">
+                            <label class="form-label-custom" for="color_cuerpo">Color del Cuerpo</label>
+                            <input 
+                                type="color" 
+                                id="color_cuerpo" 
+                                name="color_cuerpo" 
+                                class="form-input-custom"
+                                value="#0b3f66"
+                                style="height: 44px; cursor: pointer;"
+                            >
+                            <p class="form-help-text">Color de fondo del contenido</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Configuración de Imágenes -->
+                <div class="form-section">
+                    <h3 class="form-section-title">🖼️ Configuración de Imágenes</h3>
+                    <p class="form-help-text" style="margin-bottom: 16px;">
+                        Seleccione las imágenes que desea incluir en el encabezado (se distribuyen automáticamente)
+                    </p>
+                    
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input 
+                                type="checkbox" 
+                                id="img_ieee" 
+                                name="imagenes" 
+                                value="ieee"
+                            >
+                            <label for="img_ieee">IEEE Logo</label>
+                        </div>
+                        
+                        <div class="checkbox-item">
+                            <input 
+                                type="checkbox" 
+                                id="img_ieee_cr" 
+                                name="imagenes" 
+                                value="ieee_cr"
+                            >
+                            <label for="img_ieee_cr">IEEE Costa Rica</label>
+                        </div>
+                        
+                        <div class="checkbox-item">
+                            <input 
+                                type="checkbox" 
+                                id="img_ieee_cs" 
+                                name="imagenes" 
+                                value="ieee_cs"
+                            >
+                            <label for="img_ieee_cs">IEEE Computer Society</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Contenido con Editor Rico -->
+                <div class="form-section">
+                    <h3 class="form-section-title">📝 Contenido del Correo</h3>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">
+                            Mensaje del Correo <span class="required">*</span>
+                        </label>
+                        <p class="form-help-text" style="margin-bottom: 12px;">
+                            ✏️ Utiliza la barra de herramientas para dar formato profesional a tu mensaje
+                        </p>
+                        
+                        <!-- Editor Quill.js -->
+                        <div id="editor-contenido-wrapper">
+                            <div id="editor-contenido"></div>
+                        </div>
+                        
+                        <!-- Campo oculto para guardar el HTML del editor -->
+                        <textarea id="detalle" name="detalle" style="display: none;"></textarea>
+                        
+                        <p class="form-help-text" style="margin-top: 8px;">
+                            💡 Puedes agregar: negritas, cursivas, listas, enlaces, colores de texto, alineación y más
+                        </p>
+                    </div>
+
+                    <div class="form-group-custom">
+                        <label class="form-label-custom" for="firma">
+                            Firma
+                        </label>
+                        <textarea 
+                            id="firma" 
+                            name="firma" 
+                            class="form-textarea-custom"
+                            placeholder="Julio Ricardo Barrios Amador
+Section Student Representative (SSR) | IEEE Costa Rica Section
+Vocal 2 | IEEE Computer Society - Instituto Tecnológico de Costa Rica
+IEEE Member: 101781510
+julio.barrios@ieee.org"
+                        ></textarea>
+                        <p class="form-help-text">Puede personalizar su firma o dejar la predeterminada</p>
+                    </div>
+
+                    <!-- Opciones de estilo para la firma -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 16px 0;">
+                        <div class="form-group-custom">
+                            <label class="form-label-custom" for="firma_color">Color de la Firma</label>
+                            <input 
+                                type="color" 
+                                id="firma_color" 
+                                name="firma_color" 
+                                class="form-input-custom"
+                                value="#dce8f4"
+                                style="height: 44px; cursor: pointer;"
+                            >
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input 
+                                type="checkbox" 
+                                id="firma_negrita" 
+                                name="firma_estilos" 
+                                value="negrita"
+                            >
+                            <label for="firma_negrita" style="font-weight: 700;">Negrita</label>
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input 
+                                type="checkbox" 
+                                id="firma_cursiva" 
+                                name="firma_estilos" 
+                                value="cursiva"
+                            >
+                            <label for="firma_cursiva" style="font-style: italic;">Cursiva</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group-custom">
+                        <label class="form-label-custom" for="viñetas_color">Color de las Viñetas (Bullet Points)</label>
+                        <input 
+                            type="color" 
+                            id="viñetas_color" 
+                            name="viñetas_color" 
+                            class="form-input-custom"
+                            value="#ffd166"
+                            style="height: 44px; cursor: pointer;"
+                        >
+                    </div>
+                </div>
+
+                <!-- Acciones del Formulario -->
+                <div class="form-actions">
+                    <button type="button" class="btn-preview" onclick="mostrarVistaPrevia()">
+                        👁️ Vista Previa
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        ✉️ Enviar Correo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Vista previa del correo -->
+    <div id="modalVistaPrevia" class="modal-preview">
+        <div class="modal-preview-content">
+            <div class="modal-preview-header">
+                <h2>Vista Previa del Correo</h2>
+                <button class="modal-preview-close" onclick="cerrarVistaPrevia()">&times;</button>
+            </div>
+            <div class="modal-preview-body" id="vistaPreviewBody">
+                <!-- El contenido se cargará dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Quill.js JavaScript -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    
+    <script>
+        // CONFIGURACIÓN DEL EDITOR QUILL
+        const toolbarOptions = [
+            // Tipo de fuente y tamaño
+            [{ 'font': [] }],
+            [{ 'size': ['small', false, 'large', 'huge'] }],
+            
+            // Encabezados
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            
+            // Formatos de texto
+            ['bold', 'italic', 'underline', 'strike'],
+            
+            // Color de texto y fondo
+            [{ 'color': [] }, { 'background': [] }],
+            
+            // Listas
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            
+            // Sangría
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            
+            // Alineación
+            [{ 'align': [] }],
+            
+            // Scripts (superíndice y subíndice)
+            [{ 'script': 'sub'}, { 'script': 'super' }],
+            
+            // Blockquote y código
+            ['blockquote', 'code-block'],
+            
+            // Enlace
+            ['link'],
+            
+            // Limpiar formato
+            ['clean']
+        ];
+
+        // Inicializar Quill
+        const quill = new Quill('#editor-contenido', {
+            theme: 'snow',
+            modules: {
+                toolbar: toolbarOptions
+            },
+            placeholder: 'Escriba el contenido de su correo aquí...',
+        });
+
+        // Sincronizar el contenido del editor con el textarea oculto
+        const detalleInput = document.getElementById('detalle');
+        const form = document.getElementById('correoForm');
+        
+        // Al enviar el formulario, copiar HTML del editor al textarea
+        form.addEventListener('submit', function(e) {
+            const htmlContent = quill.root.innerHTML;
+            
+            // Validar que no esté vacío (Quill agrega <p><br></p> cuando está vacío)
+            const text = quill.getText().trim();
+            if (text.length === 0) {
+                e.preventDefault();
+                alert('Por favor escriba el contenido del correo.');
+                return false;
+            }
+            
+            detalleInput.value = htmlContent;
+        });
+
+        // FUNCIONES DE VISTA PREVIA
+        function mostrarVistaPrevia() {
+            const destinatario = document.getElementById('destinatario').value;
+            const asunto = document.getElementById('asunto').value;
+            const detalle = quill.root.innerHTML;
+            const firma = document.getElementById('firma').value;
+            const encabezadoTitulo = document.getElementById('encabezado_titulo').value;
+            const encabezadoSubtitulo = document.getElementById('encabezado_subtitulo').value;
+            const colorEncabezado = document.getElementById('color_encabezado').value;
+            const colorCuerpo = document.getElementById('color_cuerpo').value;
+            
+            // Obtener imágenes seleccionadas
+            const imagenesSeleccionadas = [];
+            document.querySelectorAll('input[name="imagenes"]:checked').forEach(checkbox => {
+                imagenesSeleccionadas.push(checkbox.value);
+            });
+
+            // Validar campos obligatorios
+            const text = quill.getText().trim();
+            if (!destinatario || !asunto || text.length === 0) {
+                alert('Por favor complete los campos obligatorios antes de ver la vista previa.');
+                return;
+            }
+
+            // Generar vista previa
+            const previewHTML = generarVistaPrevia(
+                destinatario, 
+                asunto, 
+                detalle, 
+                firma, 
+                imagenesSeleccionadas,
+                encabezadoTitulo,
+                encabezadoSubtitulo,
+                colorEncabezado,
+                colorCuerpo
+            );
+            document.getElementById('vistaPreviewBody').innerHTML = previewHTML;
+            document.getElementById('modalVistaPrevia').style.display = 'block';
+        }
+
+        function cerrarVistaPrevia() {
+            document.getElementById('modalVistaPrevia').style.display = 'none';
+        }
+
+        function generarVistaPrevia(destinatario, asunto, detalle, firma, imagenes, encabezadoTitulo, encabezadoSubtitulo, colorEncabezado, colorCuerpo) {
+            // Generar HTML de imágenes
+            let imagenesHTML = '';
+            
+            if (imagenes.length === 1) {
+                imagenesHTML = `<td colspan="2" align="center" style="padding: 0 12px;">
+                    <div style="text-align: center;">
+                        <div style="display: inline-block; width: 160px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 4px; line-height: 80px; color: rgba(255,255,255,0.5);">${imagenes[0]}</div>
+                    </div>
+                </td>`;
+            } else if (imagenes.length === 2) {
+                imagenesHTML = `
+                    <td align="left" style="width: 50%; vertical-align: middle; padding-left: 12px; padding-right: 18px;">
+                        <div style="display: inline-block; width: 160px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 4px; line-height: 80px; text-align: center; color: rgba(255,255,255,0.5);">${imagenes[0]}</div>
+                    </td>
+                    <td align="right" style="width: 50%; vertical-align: middle; padding-left: 18px; padding-right: 12px;">
+                        <div style="display: inline-block; width: 160px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 4px; line-height: 80px; text-align: center; color: rgba(255,255,255,0.5);">${imagenes[1]}</div>
+                    </td>
+                `;
+            } else if (imagenes.length === 3) {
+                imagenesHTML = `
+                    <td align="left" style="width: 33.33%; vertical-align: middle; padding: 0 8px;">
+                        <div style="display: inline-block; width: 120px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 4px; line-height: 60px; text-align: center; color: rgba(255,255,255,0.5); font-size: 11px;">${imagenes[0]}</div>
+                    </td>
+                    <td align="center" style="width: 33.33%; vertical-align: middle; padding: 0 8px;">
+                        <div style="display: inline-block; width: 120px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 4px; line-height: 60px; text-align: center; color: rgba(255,255,255,0.5); font-size: 11px;">${imagenes[1]}</div>
+                    </td>
+                    <td align="right" style="width: 33.33%; vertical-align: middle; padding: 0 8px;">
+                        <div style="display: inline-block; width: 120px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 4px; line-height: 60px; text-align: center; color: rgba(255,255,255,0.5); font-size: 11px;">${imagenes[2]}</div>
+                    </td>
+                `;
+            }
+
+            // Firma predeterminada
+            const firmaFinal = firma || `Julio Ricardo Barrios Amador
+Section Student Representative (SSR) | IEEE Costa Rica Section
+Vocal 2 | IEEE Computer Society - Instituto Tecnológico de Costa Rica
+IEEE Member: 101781510
+julio.barrios@ieee.org`;
+
+            const firmaLineas = firmaFinal.split('\n').map(linea => 
+                `<p style="margin: 0 0 1px 0; font-size: 13px; color: #dce8f4; letter-spacing: 0.3px;">${linea}</p>`
+            ).join('');
+            
+            // Usar valores por defecto si están vacíos
+            const tituloFinal = encabezadoTitulo || "IEEE Computer Society";
+            const subtituloFinal = encabezadoSubtitulo || "";
+
+            return `
+                <div style="margin-bottom: 20px; padding: 16px; background-color: #f8f9fa; border-radius: 6px;">
+                    <p style="margin: 0 0 8px 0;"><strong>Para:</strong> ${destinatario}</p>
+                    <p style="margin: 0;"><strong>Asunto:</strong> ${asunto}</p>
+                </div>
+                <div style="background-color: #f4f6f9; padding: 20px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-width: 600px; margin: 0 auto;">
+                        <tr>
+                            <td style="background-color: ${colorEncabezado}; padding: 28px 40px; text-align: center;">
+                                ${imagenes.length > 0 ? `
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px;">
+                                    <tr>${imagenesHTML}</tr>
+                                </table>` : ''}
+                                <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 600; letter-spacing: 0.5px;">
+                                    ${tituloFinal}
+                                </h1>
+                                ${subtituloFinal ? `<p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.85); font-size: 13px; letter-spacing: 0.3px;">
+                                    ${subtituloFinal}
+                                </p>` : ''}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 36px 40px 20px 40px; background-color: ${colorCuerpo};">
+                                <style>
+                                    /* Estilos para viñetas */
+                                    .preview-content ul, .preview-content ol { margin: 12px 0; padding-left: 24px; }
+                                    .preview-content ul li { color: #ffffff; margin: 6px 0; }
+                                    .preview-content ul li::marker { color: ${document.getElementById('viñetas_color').value}; font-size: 1.2em; }
+                                    .preview-content ol li { color: #ffffff; margin: 6px 0; }
+                                    .preview-content ol li::marker { color: ${document.getElementById('viñetas_color').value}; font-weight: bold; }
+                                    /* Estilos para enlaces */
+                                    .preview-content a { color: #00d4ff; text-decoration: underline; }
+                                    .preview-content a:hover { color: #66e3ff; }
+                                </style>
+                                <div class="preview-content" style="font-size: 15px; line-height: 1.7; color: #ffffff;">${detalle}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0 40px 36px 40px; background-color: ${colorCuerpo};">
+                                <p style="margin: 0 0 4px 0; font-size: 15px; color: #ffffff;">Atentamente,</p>
+                                <br>
+                                ${firmaLineas}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="background-color: #f8f9fa; padding: 18px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                                <p style="margin: 0; font-size: 11px; color: #adb5bd; letter-spacing: 0.2px;">
+                                    &copy; ${new Date().getFullYear()} IEEE Computer Society – Instituto Tecnológico de Costa Rica &mdash; Todos los derechos reservados.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Cerrar modal al hacer clic fuera de él
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalVistaPrevia');
+            if (event.target == modal) {
+                cerrarVistaPrevia();
+            }
+        }
+    </script>
+
+</body>
+</html>

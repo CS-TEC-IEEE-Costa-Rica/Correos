@@ -23,6 +23,15 @@
     </header>
 
     <!-- ================================================================== -->
+    <!-- BOTÓN VOLVER AL DASHBOARD                                          -->
+    <!-- ================================================================== -->
+    <div style="position: absolute; top: 20px; right: 20px;">
+        <a href="{{ url_for('dashboard_principal') }}" class="btn btn-secondary" title="Volver al Dashboard" style="padding: 10px 16px; font-size: 14px;">
+            ← Dashboard
+        </a>
+    </div>
+
+    <!-- ================================================================== -->
     <!-- CONTENEDOR PRINCIPAL                                               -->
     <!-- ================================================================== -->
     <main class="container">
@@ -129,7 +138,7 @@
         </section>
 
         <section class="filters-section">
-            <form action="{{ url_for('dashboard') }}" method="GET" class="filters-form">
+            <form action="{{ url_for('contactos') }}" method="GET" class="filters-form">
                 <div class="filters-group">
                     <label for="q">Buscar</label>
                     <input
@@ -151,6 +160,7 @@
                 <div class="filters-group">
                     <label for="sort">Ordenar por</label>
                     <select id="sort" name="sort">
+                        <option value="excel" {% if filtros and filtros.sort == 'excel' %}selected{% endif %}>Orden Excel</option>
                         <option value="empresa" {% if filtros and filtros.sort == 'empresa' %}selected{% endif %}>Empresa</option>
                         <option value="estado" {% if filtros and filtros.sort == 'estado' %}selected{% endif %}>Estado</option>
                         <option value="fecha_envio" {% if filtros and filtros.sort == 'fecha_envio' %}selected{% endif %}>Fecha de envio</option>
@@ -165,7 +175,7 @@
                 </div>
                 <div class="filters-actions">
                     <button type="submit" class="btn btn-primary">Filtrar</button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Limpiar</a>
+                    <a href="{{ url_for('contactos') }}" class="btn btn-secondary">Limpiar</a>
                 </div>
             </form>
         </section>
@@ -255,7 +265,7 @@
                 {% if paginacion and paginacion.total_paginas > 1 %}
                     <div class="pagination-controls">
                         {% if paginacion.tiene_anterior %}
-                            <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_anterior) }}">&laquo; Anterior</a>
+                            <a class="btn btn-secondary btn-sm" href="{{ url_for('contactos', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_anterior) }}">&laquo; Anterior</a>
                         {% else %}
                             <span class="btn btn-secondary btn-sm btn-disabled">&laquo; Anterior</span>
                         {% endif %}
@@ -265,13 +275,13 @@
                                 {% if p == paginacion.pagina_actual %}
                                     <span class="page-pill page-pill-active">{{ p }}</span>
                                 {% else %}
-                                    <a class="page-pill" href="{{ url_for('dashboard', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=p) }}">{{ p }}</a>
+                                    <a class="page-pill" href="{{ url_for('contactos', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=p) }}">{{ p }}</a>
                                 {% endif %}
                             {% endfor %}
                         </div>
 
                         {% if paginacion.tiene_siguiente %}
-                            <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_siguiente) }}">Siguiente &raquo;</a>
+                            <a class="btn btn-secondary btn-sm" href="{{ url_for('contactos', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_siguiente) }}">Siguiente &raquo;</a>
                         {% else %}
                             <span class="btn btn-secondary btn-sm btn-disabled">Siguiente &raquo;</span>
                         {% endif %}
