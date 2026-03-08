@@ -173,7 +173,7 @@ Sistema web desarrollado en Flask para el **IEEE Computer Society del Instituto 
 
 ```powershell
 git clone <URL_DEL_REPOSITORIO>
-cd "Programa contactos"
+cd "carpeta"
 ```
 
 #### Opción B: Descargar ZIP
