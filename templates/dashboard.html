@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEEE — Dashboard Principal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .dashboard-title {
+            text-align: center;
+            color: #00629B;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            letter-spacing: 0.5px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,98,155,0.15);
+            border-color: #00629B;
+        }
+
+        .dashboard-card-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            filter: grayscale(0.2);
+        }
+
+        .dashboard-card-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00629B;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-card-description {
+            font-size: 14px;
+            color: #6c757d;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-card-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #00629B 0%, #004A7C 100%);
+            color: white;
+            padding: 12px 32px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .dashboard-card-button:hover {
+            background: linear-gradient(135deg, #004A7C 0%, #00629B 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,98,155,0.3);
+        }
+
+        .dashboard-footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ================================================================== -->
+    <!-- HEADER INSTITUCIONAL                                               -->
+    <!-- ================================================================== -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-logo">
+                <h1>IEEE</h1>
+                <span class="header-divider"></span>
+                <p>Sistema de Correos Institucionales</p>
+            </div>
+            <div class="header-badge">Student Branch</div>
+        </div>
+    </header>
+
+    <!-- ================================================================== -->
+    <!-- DASHBOARD PRINCIPAL                                                -->
+    <!-- ================================================================== -->
+    <div class="dashboard-container">
+        <h2 class="dashboard-title">Dashboard Principal</h2>
+
+        <!-- ============================================================== -->
+        <!-- MENSAJES FLASH                                                 -->
+        <!-- ============================================================== -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">
+                            <span class="flash-icon">
+                                {% if category == 'success' %}&#10004;{% elif category == 'error' %}&#10006;{% elif category == 'warning' %}&#9888;{% else %}&#8505;{% endif %}
+                            </span>
+                            <span class="flash-text">{{ message }}</span>
+                            <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="dashboard-grid">
+            <!-- Tarjeta 1: Gestión de Contactos -->
+            <div class="dashboard-card" onclick="location.href='{{ url_for('contactos') }}'">
+                <div class="dashboard-card-icon">📋</div>
+                <h3 class="dashboard-card-title">Gestión de Contactos</h3>
+                <p class="dashboard-card-description">
+                    Administre su directorio de empresas y contactos institucionales. 
+                    Envíe correos con formato predefinido para invitaciones a colaborar.
+                </p>
+                <a href="{{ url_for('contactos') }}" class="dashboard-card-button">
+                    Gestionar Contactos
+                </a>
+            </div>
+
+            <!-- Tarjeta 2: Correo Personalizado -->
+            <div class="dashboard-card" onclick="location.href='{{ url_for('correo_personalizado') }}'">
+                <div class="dashboard-card-icon">✉️</div>
+                <h3 class="dashboard-card-title">Correo Personalizado</h3>
+                <p class="dashboard-card-description">
+                    Cree y envíe correos electrónicos profesionales con formato institucional personalizable. 
+                    Configure imágenes, asunto y contenido a su medida.
+                </p>
+                <a href="{{ url_for('correo_personalizado') }}" class="dashboard-card-button">
+                    Crear Correo
+                </a>
+            </div>
+        </div>
+
+        <div class="dashboard-footer">
+            <p>&copy; {{ year }} IEEE Computer Society – Instituto Tecnológico de Costa Rica</p>
+            <p>Sistema de Gestión de Correos Institucionales v2.0</p>
+        </div>
+    </div>
+
+</body>
+</html>
