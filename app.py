@@ -15,7 +15,7 @@ from email.mime.image import MIMEImage
 from datetime import datetime
 
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 
 # ==============================================================================
 # CONFIGURACIÓN DEL SISTEMA
@@ -677,6 +677,35 @@ def enviar(id):
         flash(resultado["mensaje"], "error")
 
     return redirect(url_for("dashboard"))
+
+
+@app.route("/vista_previa/<int:id>")
+def vista_previa(id):
+    """
+    Ruta para obtener la vista previa del correo de un contacto específico.
+    Retorna JSON con asunto y cuerpo HTML.
+    """
+    contacto = obtener_contacto_por_indice(id)
+
+    if not contacto:
+        return jsonify({"error": "Contacto no encontrado"}), 404
+
+    # Generar saludo y cuerpo del correo
+    saludo = generar_saludo(contacto["empresa"], contacto["contacto"])
+    cuerpo_html = generar_cuerpo_html(
+        saludo,
+        contacto["empresa"],
+        incluir_logo_ieee=os.path.exists(IEEE_LOGO_PATH),
+        incluir_logo_ieee_cs=os.path.exists(IEEE_CS_LOGO_PATH)
+    )
+
+    return jsonify({
+        "asunto": "Invitación a colaborar - Iniciativas estudiantiles TEC",
+        "cuerpo": cuerpo_html,
+        "destinatario": contacto["correo"],
+        "empresa": contacto["empresa"],
+        "contacto": contacto.get("contacto", "")
+    })
 
 
 @app.route("/reimportar")

@@ -200,7 +200,7 @@
                         </thead>
                         <tbody>
                             {% for c in contactos %}
-                                <tr class="row-{{ c.estado_envio | lower }}">
+                                <tr class="row-{{ c.estado_envio | lower }} row-clickable" data-contacto-id="{{ c.id }}">
                                     <td class="td-id">{{ c.id }}</td>
                                     <td class="td-empresa">{{ c.empresa }}</td>
                                     <td class="td-contacto">
@@ -289,6 +289,31 @@
     </main>
 
     <!-- ================================================================== -->
+    <!-- MODAL: Vista previa del correo                                     -->
+    <!-- ================================================================== -->
+    <div id="modalVistaPrevia" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Vista Previa del Correo</h2>
+                <button class="modal-close" onclick="cerrarModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-info">
+                    <p><strong>Destinatario:</strong> <span id="preview-destinatario"></span></p>
+                    <p><strong>Asunto:</strong> <span id="preview-asunto"></span></p>
+                </div>
+                <div class="preview-divider"></div>
+                <div class="preview-body" id="preview-cuerpo">
+                    <div class="loading">Cargando vista previa...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
     <!-- FOOTER                                                             -->
     <!-- ================================================================== -->
     <footer class="footer">
@@ -296,11 +321,11 @@
     </footer>
 
     <!-- ================================================================== -->
-    <!-- SCRIPT: Auto-cerrar mensajes flash                                 -->
+    <!-- SCRIPTS                                                            -->
     <!-- ================================================================== -->
     <script>
+        // Auto-cerrar mensajes flash
         document.addEventListener("DOMContentLoaded", function () {
-            // Cerrar mensajes flash automáticamente después de 6 segundos
             const flashes = document.querySelectorAll(".flash");
             flashes.forEach(function (flash) {
                 setTimeout(function () {
@@ -311,6 +336,82 @@
                     }, 300);
                 }, 6000);
             });
+        });
+
+        // Vista previa de correo al hacer clic en la fila
+        document.addEventListener("DOMContentLoaded", function () {
+            const filas = document.querySelectorAll(".row-clickable");
+            
+            filas.forEach(function (fila) {
+                fila.addEventListener("click", function (e) {
+                    // No abrir modal si hizo clic en botones o enlaces
+                    if (e.target.closest(".btn") || e.target.closest("a")) {
+                        return;
+                    }
+
+                    const contactoId = fila.getAttribute("data-contacto-id");
+                    abrirVistaPrevia(contactoId);
+                });
+
+                // Cambiar cursor en toda la fila excepto en los botones
+                fila.addEventListener("mouseover", function (e) {
+                    if (!e.target.closest(".btn") && !e.target.closest("a")) {
+                        fila.style.cursor = "pointer";
+                    } else {
+                        fila.style.cursor = "default";
+                    }
+                });
+            });
+        });
+
+        function abrirVistaPrevia(contactoId) {
+            const modal = document.getElementById("modalVistaPrevia");
+            const cuerpoPreview = document.getElementById("preview-cuerpo");
+            const destinatarioElem = document.getElementById("preview-destinatario");
+            const asuntoElem = document.getElementById("preview-asunto");
+
+            // Mostrar modal con loading
+            modal.style.display = "flex";
+            cuerpoPreview.innerHTML = '<div class="loading">Cargando vista previa...</div>';
+            destinatarioElem.textContent = "—";
+            asuntoElem.textContent = "—";
+
+            // Cargar vista previa
+            fetch(`/vista_previa/${contactoId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("No se pudo cargar la vista previa");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    destinatarioElem.textContent = data.destinatario;
+                    asuntoElem.textContent = data.asunto;
+                    cuerpoPreview.innerHTML = data.cuerpo;
+                })
+                .catch(error => {
+                    cuerpoPreview.innerHTML = `<div class="error-preview">Error al cargar la vista previa: ${error.message}</div>`;
+                });
+        }
+
+        function cerrarModal() {
+            const modal = document.getElementById("modalVistaPrevia");
+            modal.style.display = "none";
+        }
+
+        // Cerrar modal al hacer clic fuera de él
+        window.onclick = function(event) {
+            const modal = document.getElementById("modalVistaPrevia");
+            if (event.target === modal) {
+                cerrarModal();
+            }
+        }
+
+        // Cerrar modal con tecla ESC
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Escape") {
+                cerrarModal();
+            }
         });
     </script>
 
