@@ -22,8 +22,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 # ==============================================================================
 
 # Credenciales SMTP - Modificar antes de usar en producción
-EMAIL_REMITENTE = "julio.barrios@ieee.org"
-EMAIL_PASSWORD = "twhh tvql kxfl uwlk"
+EMAIL_REMITENTE = ""
+EMAIL_PASSWORD = ""
 
 # Configuración del servidor SMTP (por defecto Gmail con TLS)
 SMTP_SERVER = "smtp.gmail.com"
