@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEEE — Sistema de Correos Institucionales</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- ================================================================== -->
+    <!-- HEADER INSTITUCIONAL                                               -->
+    <!-- ================================================================== -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-logo">
+                <h1>IEEE</h1>
+                <span class="header-divider"></span>
+                <p>Sistema de Correos Institucionales</p>
+            </div>
+            <div class="header-badge">Student Branch</div>
+        </div>
+    </header>
+
+    <!-- ================================================================== -->
+    <!-- CONTENEDOR PRINCIPAL                                               -->
+    <!-- ================================================================== -->
+    <main class="container">
+
+        <!-- ============================================================== -->
+        <!-- MENSAJES FLASH                                                 -->
+        <!-- ============================================================== -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">
+                            <span class="flash-icon">
+                                {% if category == 'success' %}&#10004;{% elif category == 'error' %}&#10006;{% elif category == 'warning' %}&#9888;{% else %}&#8505;{% endif %}
+                            </span>
+                            <span class="flash-text">{{ message }}</span>
+                            <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- ============================================================== -->
+        <!-- TARJETAS DE ESTADÍSTICAS                                       -->
+        <!-- ============================================================== -->
+        <section class="stats-section">
+            <div class="stat-card stat-total">
+                <div class="stat-number">{{ estadisticas.total }}</div>
+                <div class="stat-label">Total Contactos</div>
+            </div>
+            <div class="stat-card stat-pendiente">
+                <div class="stat-number">{{ estadisticas.pendientes }}</div>
+                <div class="stat-label">Pendientes</div>
+            </div>
+            <div class="stat-card stat-enviado">
+                <div class="stat-number">{{ estadisticas.enviados }}</div>
+                <div class="stat-label">Enviados</div>
+            </div>
+            <div class="stat-card stat-error">
+                <div class="stat-number">{{ estadisticas.errores }}</div>
+                <div class="stat-label">Con Error</div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- PANEL DE ACCIONES                                              -->
+        <!-- ============================================================== -->
+        <section class="actions-section">
+            <h2 class="section-title">Agregar Nuevo Contacto</h2>
+            <form action="{{ url_for('agregar') }}" method="POST" class="form-agregar">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="empresa">Empresa <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            id="empresa"
+                            name="empresa"
+                            placeholder="Nombre de la empresa"
+                            required
+                            maxlength="200"
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="contacto">Contacto</label>
+                        <input
+                            type="text"
+                            id="contacto"
+                            name="contacto"
+                            placeholder="Nombre del contacto (opcional)"
+                            maxlength="200"
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="correo">Correo Electrónico <span class="required">*</span></label>
+                        <input
+                            type="email"
+                            id="correo"
+                            name="correo"
+                            placeholder="correo@ejemplo.com"
+                            required
+                            maxlength="254"
+                        >
+                    </div>
+                    <div class="form-group form-group-btn">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-icon">+</span> Agregar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- BARRA DE HERRAMIENTAS                                          -->
+        <!-- ============================================================== -->
+        <section class="toolbar">
+            <h2 class="section-title">Directorio de Contactos</h2>
+            <div class="toolbar-actions">
+                <a href="{{ url_for('reimportar') }}" class="btn btn-secondary" title="Reimportar desde contactos.xlsx">
+                    <span class="btn-icon">&#8635;</span> Reimportar Excel
+                </a>
+            </div>
+        </section>
+
+        <section class="filters-section">
+            <form action="{{ url_for('dashboard') }}" method="GET" class="filters-form">
+                <div class="filters-group">
+                    <label for="q">Buscar</label>
+                    <input
+                        type="text"
+                        id="q"
+                        name="q"
+                        value="{{ filtros.q if filtros else '' }}"
+                        placeholder="Empresa, contacto o correo"
+                    >
+                </div>
+                <div class="filters-group">
+                    <label for="estado">Estado</label>
+                    <select id="estado" name="estado">
+                        <option value="todos" {% if filtros and filtros.estado == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="pendiente" {% if filtros and filtros.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="enviado" {% if filtros and filtros.estado == 'enviado' %}selected{% endif %}>Enviado</option>
+                    </select>
+                </div>
+                <div class="filters-group">
+                    <label for="sort">Ordenar por</label>
+                    <select id="sort" name="sort">
+                        <option value="empresa" {% if filtros and filtros.sort == 'empresa' %}selected{% endif %}>Empresa</option>
+                        <option value="estado" {% if filtros and filtros.sort == 'estado' %}selected{% endif %}>Estado</option>
+                        <option value="fecha_envio" {% if filtros and filtros.sort == 'fecha_envio' %}selected{% endif %}>Fecha de envio</option>
+                    </select>
+                </div>
+                <div class="filters-group">
+                    <label for="dir">Direccion</label>
+                    <select id="dir" name="dir">
+                        <option value="asc" {% if filtros and filtros.dir == 'asc' %}selected{% endif %}>Ascendente</option>
+                        <option value="desc" {% if filtros and filtros.dir == 'desc' %}selected{% endif %}>Descendente</option>
+                    </select>
+                </div>
+                <div class="filters-actions">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </form>
+        </section>
+
+        <section class="pagination-summary">
+            <p>
+                Mostrando <strong>{{ contactos | length }}</strong> de
+                <strong>{{ paginacion.total_filtrados if paginacion else 0 }}</strong> contactos filtrados
+                (página <strong>{{ paginacion.pagina_actual if paginacion else 1 }}</strong>
+                de <strong>{{ paginacion.total_paginas if paginacion else 1 }}</strong>,
+                50 por página).
+            </p>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- TABLA DE CONTACTOS                                             -->
+        <!-- ============================================================== -->
+        <section class="table-section">
+            {% if contactos | length > 0 %}
+                <div class="table-wrapper">
+                    <table class="table-contactos">
+                        <thead>
+                            <tr>
+                                <th class="th-id">#</th>
+                                <th class="th-empresa">Empresa</th>
+                                <th class="th-contacto">Contacto</th>
+                                <th class="th-correo">Correo Electrónico</th>
+                                <th class="th-estado">Estado</th>
+                                <th class="th-fecha">Fecha de Envío</th>
+                                <th class="th-acciones">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in contactos %}
+                                <tr class="row-{{ c.estado_envio | lower }}">
+                                    <td class="td-id">{{ c.id }}</td>
+                                    <td class="td-empresa">{{ c.empresa }}</td>
+                                    <td class="td-contacto">
+                                        {% if c.contacto %}
+                                            {{ c.contacto }}
+                                        {% else %}
+                                            <span class="text-muted">— Sin contacto —</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="td-correo">{{ c.correo }}</td>
+                                    <td class="td-estado">
+                                        <span class="badge badge-{{ c.estado_envio | lower }}">
+                                            {% if c.estado_envio == 'Pendiente' %}
+                                                &#9679; Pendiente
+                                            {% elif c.estado_envio == 'Enviado' %}
+                                                &#10004; Enviado
+                                            {% elif c.estado_envio == 'Error' %}
+                                                &#10006; Error
+                                            {% else %}
+                                                {{ c.estado_envio }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="td-fecha">
+                                        {% if c.fecha_envio %}
+                                            {{ c.fecha_envio }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="td-acciones">
+                                        <div class="acciones-group">
+                                            <a href="{{ url_for('enviar', id=c.id) }}"
+                                               class="btn btn-sm btn-enviar"
+                                               title="Enviar correo a {{ c.correo }}"
+                                               onclick="return confirm('¿Enviar correo institucional a {{ c.correo }}?')">
+                                                &#9993; Enviar
+                                            </a>
+                                            <a href="{{ url_for('eliminar', id=c.id) }}"
+                                               class="btn btn-sm btn-eliminar"
+                                               title="Eliminar contacto"
+                                               onclick="return confirm('¿Está seguro de eliminar el contacto de {{ c.empresa }}?')">
+                                                &#128465; Eliminar
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if paginacion and paginacion.total_paginas > 1 %}
+                    <div class="pagination-controls">
+                        {% if paginacion.tiene_anterior %}
+                            <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_anterior) }}">&laquo; Anterior</a>
+                        {% else %}
+                            <span class="btn btn-secondary btn-sm btn-disabled">&laquo; Anterior</span>
+                        {% endif %}
+
+                        <div class="pagination-pages">
+                            {% for p in paginacion.paginas_visibles %}
+                                {% if p == paginacion.pagina_actual %}
+                                    <span class="page-pill page-pill-active">{{ p }}</span>
+                                {% else %}
+                                    <a class="page-pill" href="{{ url_for('dashboard', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=p) }}">{{ p }}</a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        {% if paginacion.tiene_siguiente %}
+                            <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_siguiente) }}">Siguiente &raquo;</a>
+                        {% else %}
+                            <span class="btn btn-secondary btn-sm btn-disabled">Siguiente &raquo;</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">&#128233;</div>
+                    <h3>No hay contactos registrados</h3>
+                    <p>Agregue contactos manualmente o importe desde el archivo <strong>contactos.xlsx</strong>.</p>
+                </div>
+            {% endif %}
+        </section>
+
+    </main>
+
+    <!-- ================================================================== -->
+    <!-- FOOTER                                                             -->
+    <!-- ================================================================== -->
+    <footer class="footer">
+        <p>&copy; {{ estadisticas.total }} contactos registrados &mdash; IEEE Student Branch &mdash; Sistema de Correos Institucionales</p>
+    </footer>
+
+    <!-- ================================================================== -->
+    <!-- SCRIPT: Auto-cerrar mensajes flash                                 -->
+    <!-- ================================================================== -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Cerrar mensajes flash automáticamente después de 6 segundos
+            const flashes = document.querySelectorAll(".flash");
+            flashes.forEach(function (flash) {
+                setTimeout(function () {
+                    flash.style.opacity = "0";
+                    flash.style.transform = "translateY(-10px)";
+                    setTimeout(function () {
+                        flash.remove();
+                    }, 300);
+                }, 6000);
+            });
+        });
+    </script>
+
+</body>
+</html>
