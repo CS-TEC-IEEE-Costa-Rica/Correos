@@ -46,7 +46,8 @@ IEEE_CS_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee cs imagen.png")
 IEEE_CR_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee costa rica.png")
 
 # Clave secreta para sesiones Flask
-SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
+SECRET_KEY = os.getenv(
+    "FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
 
 # ==============================================================================
 # INICIALIZACIÓN DE LA APLICACIÓN FLASK
@@ -135,7 +136,8 @@ def inicializar_excel():
             df = df.fillna("")
 
             # Asegurar que "enviado" solo tenga "si" o "no"
-            df["enviado"] = df["enviado"].apply(lambda x: "si" if str(x).lower() in ["si", "sí", "yes", "1"] else "no")
+            df["enviado"] = df["enviado"].apply(lambda x: "si" if str(x).lower() in [
+                                                "si", "sí", "yes", "1"] else "no")
 
             # Guardar cambios
             return _escribir_excel_atomico(df)
@@ -224,11 +226,13 @@ def leer_contactos():
             if es_error_excel_corrupto(e):
                 if reparar_excel_corrupto():
                     try:
-                        df = pd.read_excel(EXCEL_PATH, engine="openpyxl").fillna("")
+                        df = pd.read_excel(
+                            EXCEL_PATH, engine="openpyxl").fillna("")
                         _excel_error_reportado = False
                         return df
                     except Exception as e2:
-                        print(f"[ERROR] Falló la lectura después de reparar Excel: {e2}")
+                        print(
+                            f"[ERROR] Falló la lectura después de reparar Excel: {e2}")
 
             return pd.DataFrame(columns=EXCEL_COLUMNS)
 
@@ -255,7 +259,7 @@ def obtener_contacto_por_indice(indice):
     df = leer_contactos()
     if indice < 0 or indice >= len(df):
         return None
-    
+
     contacto = df.iloc[indice].to_dict()
     contacto["indice"] = indice
     return contacto
@@ -324,11 +328,11 @@ def obtener_estadisticas():
     Calcula estadísticas de los contactos.
     """
     df = leer_contactos()
-    
+
     total = len(df)
     enviados = len(df[df["enviado"].str.lower() == "si"])
     pendientes = len(df[df["enviado"].str.lower() == "no"])
-    
+
     return {
         "total": total,
         "enviados": enviados,
@@ -591,14 +595,16 @@ def enviar_correo(destinatario, empresa, contacto):
         with open(IEEE_LOGO_PATH, "rb") as logo_ieee:
             img_ieee = MIMEImage(logo_ieee.read())
             img_ieee.add_header("Content-ID", "<logo_ieee>")
-            img_ieee.add_header("Content-Disposition", "inline", filename="ieee.png")
+            img_ieee.add_header("Content-Disposition",
+                                "inline", filename="ieee.png")
             mensaje.attach(img_ieee)
 
     if incluir_logo_ieee_cs:
         with open(IEEE_CS_LOGO_PATH, "rb") as logo_ieee_cs:
             img_ieee_cs = MIMEImage(logo_ieee_cs.read())
             img_ieee_cs.add_header("Content-ID", "<logo_ieee_cs>")
-            img_ieee_cs.add_header("Content-Disposition", "inline", filename="ieee_cs.png")
+            img_ieee_cs.add_header("Content-Disposition",
+                                   "inline", filename="ieee_cs.png")
             mensaje.attach(img_ieee_cs)
 
     try:
@@ -637,13 +643,13 @@ def procesar_listas_para_email(html_content, viñetas_color="#ffd166"):
     Reemplaza listas con tablas HTML que tienen estilos inline.
     """
     import re
-    
+
     def convertir_ul(match):
         """Convierte <ul>...</ul> en tablas HTML con viñetas coloreadas."""
         contenido = match.group(1)
         # Extraer cada <li>...</li>
         items = re.findall(r'<li[^>]*>(.*?)</li>', contenido, re.DOTALL)
-        
+
         tablas = []
         for item in items:
             tabla = (
@@ -655,15 +661,15 @@ def procesar_listas_para_email(html_content, viñetas_color="#ffd166"):
                 f'</table>'
             )
             tablas.append(tabla)
-        
+
         return '\n'.join(tablas)
-    
+
     def convertir_ol(match):
         """Convierte <ol>...</ol> en tablas HTML con números coloreados."""
         contenido = match.group(1)
         # Extraer cada <li>...</li>
         items = re.findall(r'<li[^>]*>(.*?)</li>', contenido, re.DOTALL)
-        
+
         tablas = []
         for i, item in enumerate(items, start=1):
             tabla = (
@@ -675,25 +681,28 @@ def procesar_listas_para_email(html_content, viñetas_color="#ffd166"):
                 f'</table>'
             )
             tablas.append(tabla)
-        
+
         return '\n'.join(tablas)
-    
+
     # Procesar listas no ordenadas
-    html_content = re.sub(r'<ul[^>]*>(.*?)</ul>', convertir_ul, html_content, flags=re.DOTALL)
-    
+    html_content = re.sub(r'<ul[^>]*>(.*?)</ul>',
+                          convertir_ul, html_content, flags=re.DOTALL)
+
     # Procesar listas ordenadas
-    html_content = re.sub(r'<ol[^>]*>(.*?)</ol>', convertir_ol, html_content, flags=re.DOTALL)
-    
+    html_content = re.sub(r'<ol[^>]*>(.*?)</ol>',
+                          convertir_ol, html_content, flags=re.DOTALL)
+
     return html_content
 
 
-def generar_cuerpo_html_personalizado(detalle, firma, imagenes_seleccionadas, encabezado_titulo="", 
-                                       encabezado_subtitulo="", firma_color="#dce8f4", 
-                                       firma_estilos=None, viñetas_color="#ffd166",
-                                       color_encabezado="#00629B", color_cuerpo="#0b3f66"):
+def generar_cuerpo_html_personalizado(detalle, firma, imagenes_seleccionadas, encabezado_titulo="",
+                                      encabezado_subtitulo="", firma_color="#dce8f4",
+                                      firma_estilos=None, viñetas_color="#ffd166",
+                                      color_encabezado="#00629B", color_cuerpo="#0b3f66",
+                                      copyright=""):
     """
     Genera el cuerpo del correo personalizado en formato HTML con diseño institucional.
-    
+
     Args:
         detalle: El contenido HTML principal del correo (puede contener etiquetas HTML con estilos)
         firma: La firma personalizada (puede ser vacía para usar la predeterminada)
@@ -705,31 +714,32 @@ def generar_cuerpo_html_personalizado(detalle, firma, imagenes_seleccionadas, en
         viñetas_color: Color de los bullet points y números de lista
         color_encabezado: Color de fondo del encabezado
         color_cuerpo: Color de fondo del cuerpo del correo
+        copyright: Texto de copyright personalizado para el footer
     """
     if firma_estilos is None:
         firma_estilos = []
-    
+
     # Usar valores predeterminados si no se proporcionan
     if not encabezado_titulo:
         encabezado_titulo = "IEEE Computer Society"
     # El subtítulo puede ir vacío, no forzamos un valor por defecto
-    
+
     # Procesar el HTML del detalle para convertir listas en formato compatible con email
     detalle_procesado = procesar_listas_para_email(detalle, viñetas_color)
-    
+
     # Procesar el HTML del detalle para convertir listas en formato compatible con email
     detalle_procesado = procesar_listas_para_email(detalle, viñetas_color)
-    
+
     # Generar estilos CSS para la firma
     estilo_firma = ""
     if 'negrita' in firma_estilos:
         estilo_firma += "font-weight: 700; "
     if 'cursiva' in firma_estilos:
         estilo_firma += "font-style: italic; "
-    
+
     # Generar HTML de las imágenes según la cantidad seleccionada
     imagenes_html = ""
-    
+
     if len(imagenes_seleccionadas) == 1:
         # Una sola imagen, a la izquierda
         img_src = f"cid:logo_{imagenes_seleccionadas[0]}"
@@ -779,7 +789,7 @@ def generar_cuerpo_html_personalizado(detalle, firma, imagenes_seleccionadas, en
                 </tr>
             </table>
         """
-    
+
     # Firma predeterminada si no se proporciona una personalizada
     if not firma or not firma.strip():
         firma = """Julio Ricardo Barrios Amador
@@ -787,7 +797,7 @@ Section Student Representative (SSR) | IEEE Costa Rica Section
 Vocal 2 | IEEE Computer Society - Instituto Tecnológico de Costa Rica
 IEEE Member: 101781510
 julio.barrios@ieee.org"""
-    
+
     # Convertir la firma en párrafos HTML con estilos personalizados
     lineas_firma = firma.strip().split('\n')
     firma_html = ""
@@ -813,10 +823,10 @@ julio.barrios@ieee.org"""
                     {linea}
                 </p>
             """
-    
+
     # El detalle ahora ya viene como HTML del editor contenteditable
     # No es necesario convertir saltos de línea
-    
+
     html = f"""
     <!DOCTYPE html>
     <html lang="es">
@@ -897,7 +907,7 @@ julio.barrios@ieee.org"""
                         <tr>
                             <td style="background-color: #f8f9fa; padding: 18px 40px; text-align: center; border-top: 1px solid #e9ecef;">
                                 <p style="margin: 0; font-size: 11px; color: #adb5bd; letter-spacing: 0.2px;">
-                                    &copy; {datetime.now().year} IEEE Computer Society – Instituto Tecnológico de Costa Rica &mdash; Todos los derechos reservados.
+                                    {copyright if copyright else f'&copy; {datetime.now().year} IEEE Computer Society – Instituto Tecnológico de Costa Rica &mdash; Todos los derechos reservados.'}
                                 </p>
                             </td>
                         </tr>
@@ -912,9 +922,9 @@ julio.barrios@ieee.org"""
 
 
 def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, imagenes_seleccionadas,
-                                    encabezado_titulo="", encabezado_subtitulo="",
-                                    firma_color="#dce8f4", firma_estilos=None, viñetas_color="#ffd166",
-                                    color_encabezado="#00629B", color_cuerpo="#0b3f66", cc_list=None):
+                                     encabezado_titulo="", encabezado_subtitulo="",
+                                     firma_color="#dce8f4", firma_estilos=None, viñetas_color="#ffd166",
+                                     color_encabezado="#00629B", color_cuerpo="#0b3f66", cc_list=None, copyright=""):
     """
     Envía un correo electrónico personalizado usando SMTP con TLS.
     Permite seleccionar las imágenes del encabezado y personalizar estilos de firma.
@@ -941,7 +951,8 @@ def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, image
         firma_estilos=firma_estilos,
         viñetas_color=viñetas_color,
         color_encabezado=color_encabezado,
-        color_cuerpo=color_cuerpo
+        color_cuerpo=color_cuerpo,
+        copyright=copyright
     )
 
     # Usamos multipart/related para soportar imágenes inline referenciadas por CID.
@@ -973,7 +984,8 @@ def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, image
             with open(img_path, "rb") as img_file:
                 img_data = MIMEImage(img_file.read())
                 img_data.add_header("Content-ID", f"<logo_{img_key}>")
-                img_data.add_header("Content-Disposition", "inline", filename=f"{img_key}.png")
+                img_data.add_header("Content-Disposition",
+                                    "inline", filename=f"{img_key}.png")
                 mensaje.attach(img_data)
 
     try:
@@ -987,7 +999,8 @@ def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, image
         destinatarios_envio = [destinatario]
         if cc_list:
             destinatarios_envio += cc_list
-        servidor.sendmail(EMAIL_REMITENTE, destinatarios_envio, mensaje.as_string())
+        servidor.sendmail(
+            EMAIL_REMITENTE, destinatarios_envio, mensaje.as_string())
         servidor.quit()
 
         return {"exito": True, "mensaje": f"Correo enviado exitosamente a {destinatario}"}
@@ -1052,7 +1065,8 @@ def contactos():
     if busqueda:
         patron = re.escape(busqueda)
         mascara_busqueda = (
-            df["empresa"].astype(str).str.contains(patron, case=False, na=False)
+            df["empresa"].astype(str).str.contains(
+                patron, case=False, na=False)
             | df["contacto"].astype(str).str.contains(patron, case=False, na=False)
             | df["correo"].astype(str).str.contains(patron, case=False, na=False)
         )
@@ -1071,9 +1085,11 @@ def contactos():
     ascendente = direccion == "asc"
     if ordenar_por == "excel":
         # Respeta el orden original del Excel usando el índice (id).
-        df = df.sort_values(by=["id"], ascending=[ascendente], kind="mergesort")
+        df = df.sort_values(by=["id"], ascending=[
+                            ascendente], kind="mergesort")
     elif ordenar_por == "estado":
-        df = df.sort_values(by=["estado_envio", "empresa"], ascending=[ascendente, True], kind="mergesort")
+        df = df.sort_values(by=["estado_envio", "empresa"], ascending=[
+                            ascendente, True], kind="mergesort")
     elif ordenar_por == "fecha_envio":
         # Para fecha vacía, usamos un extremo para que queden al final según el orden.
         fecha_tmp = pd.to_datetime(df["fecha_envio"], errors="coerce")
@@ -1081,12 +1097,15 @@ def contactos():
             fecha_tmp = fecha_tmp.fillna(pd.Timestamp.max)
         else:
             fecha_tmp = fecha_tmp.fillna(pd.Timestamp.min)
-        df = df.assign(_fecha_sort=fecha_tmp).sort_values(by=["_fecha_sort", "empresa"], ascending=[ascendente, True], kind="mergesort").drop(columns=["_fecha_sort"])
+        df = df.assign(_fecha_sort=fecha_tmp).sort_values(by=["_fecha_sort", "empresa"], ascending=[
+            ascendente, True], kind="mergesort").drop(columns=["_fecha_sort"])
     elif ordenar_por == "empresa":
-        df = df.sort_values(by=["empresa", "id"], ascending=[ascendente, True], kind="mergesort")
+        df = df.sort_values(by=["empresa", "id"], ascending=[
+                            ascendente, True], kind="mergesort")
     else:
         ordenar_por = "excel"
-        df = df.sort_values(by=["id"], ascending=[ascendente], kind="mergesort")
+        df = df.sort_values(by=["id"], ascending=[
+                            ascendente], kind="mergesort")
 
     total_filtrados = len(df)
     tam_pagina = 50
@@ -1129,7 +1148,6 @@ def contactos():
             "paginas_visibles": list(range(inicio_paginas, fin_paginas + 1)),
         },
     )
-
 
 
 @app.route("/agregar", methods=["POST"])
@@ -1255,7 +1273,8 @@ def eliminar(id):
         return redirect(url_for("contactos", **return_params))
 
     if eliminar_contacto(id):
-        flash(f"Contacto '{contacto['empresa']}' eliminado correctamente.", "success")
+        flash(
+            f"Contacto '{contacto['empresa']}' eliminado correctamente.", "success")
     else:
         flash("Error al eliminar el contacto.", "error")
 
@@ -1281,45 +1300,50 @@ def enviar_correo_personalizado():
     asunto = request.form.get("asunto", "").strip()
     detalle = request.form.get("detalle", "").strip()
     firma = request.form.get("firma", "").strip()
-    
+
     # Nuevos campos personalizables
-    encabezado_titulo = request.form.get("encabezado_titulo", "IEEE Computer Society").strip()
+    encabezado_titulo = request.form.get(
+        "encabezado_titulo", "IEEE Computer Society").strip()
     encabezado_subtitulo = request.form.get("encabezado_subtitulo", "").strip()
-    
+
     # Colores de firma
     firma_color = request.form.get("firma_color", "#dce8f4").strip()
     viñetas_color = request.form.get("viñetas_color", "#ffd166").strip()
-    
+
     # Colores de encabezado y cuerpo del correo
     color_encabezado = request.form.get("color_encabezado", "#00629B").strip()
     color_cuerpo = request.form.get("color_cuerpo", "#0b3f66").strip()
-    
+
+    # Copyright personalizado del footer
+    copyright = request.form.get("copyright", "").strip()
+
     # Estilos de firma
     firma_estilos = request.form.getlist("firma_estilos")
-    
+
     # Obtener imágenes seleccionadas (pueden ser múltiples)
     imagenes_seleccionadas = request.form.getlist("imagenes")
-    
+
     # Campo CC (opcional) - puede contener múltiples direcciones separadas por comas o punto y coma
     cc_raw = request.form.get("cc", "").strip()
     # Parsear lista de CC separada por comas o punto y coma
     cc_list = []
     if cc_raw:
-        cc_list = [c.strip().lower() for c in re.split(r'[;,]', cc_raw) if c.strip()]
+        cc_list = [c.strip().lower()
+                   for c in re.split(r'[;,]', cc_raw) if c.strip()]
 
     # Validar campos obligatorios
     if not destinatario:
         flash("El campo 'Destinatario' es obligatorio.", "error")
         return redirect(url_for("correo_personalizado"))
-    
+
     if not asunto:
         flash("El campo 'Asunto' es obligatorio.", "error")
         return redirect(url_for("correo_personalizado"))
-    
+
     if not detalle:
         flash("El campo 'Mensaje' es obligatorio.", "error")
         return redirect(url_for("correo_personalizado"))
-    
+
     # Validar formato de correo
     if not validar_correo(destinatario):
         flash("El formato del correo electrónico del destinatario no es válido.", "error")
@@ -1328,14 +1352,15 @@ def enviar_correo_personalizado():
     # Validar formato de CC (si se proporcionaron)
     for cc in cc_list:
         if not validar_correo(cc):
-            flash(f"El correo en CC '{cc}' no tiene un formato válido.", "error")
+            flash(
+                f"El correo en CC '{cc}' no tiene un formato válido.", "error")
             return redirect(url_for("correo_personalizado"))
-    
+
     # Validar que haya al menos una imagen seleccionada
     if not imagenes_seleccionadas:
         flash("Debe seleccionar al menos una imagen para el encabezado.", "warning")
         return redirect(url_for("correo_personalizado"))
-    
+
     # Ejecutar envío de correo con los parámetros personalizables
     resultado = enviar_correo_personalizado_smtp(
         destinatario=destinatario,
@@ -1350,9 +1375,10 @@ def enviar_correo_personalizado():
         viñetas_color=viñetas_color,
         color_encabezado=color_encabezado,
         color_cuerpo=color_cuerpo,
+        copyright=copyright,
         cc_list=cc_list
     )
-    
+
     if resultado["exito"]:
         flash(f"Correo enviado exitosamente a {destinatario}", "success")
         return redirect(url_for("dashboard_principal"))
@@ -1395,4 +1421,5 @@ def inicializar_sistema():
 if __name__ == "__main__":
     inicializar_sistema()
     # NOTA: Cambiar debug=False para entorno de producción
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    port = int(os.getenv("FLASK_PORT", "5001"))
+    app.run(host="0.0.0.0", port=port, debug=False)
