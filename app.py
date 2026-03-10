@@ -1460,6 +1460,74 @@ def api_configuracion():
     })
 
 
+@app.route("/api/preview_correo_personalizado", methods=["POST"])
+def api_preview_correo_personalizado():
+    """
+    API para generar vista previa del correo personalizado.
+    Genera el HTML exactamente como se generaría para el envío real.
+    Retorna JSON con el HTML del correo completo y metadatos.
+    """
+    try:
+        # Obtener datos del formulario
+        destinatario = request.json.get("destinatario", "").strip()
+        cc = request.json.get("cc", "").strip()
+        asunto = request.json.get("asunto", "").strip()
+        detalle = request.json.get("detalle", "").strip()
+        firma = request.json.get("firma", "").strip()
+
+        # Campos personalizables
+        encabezado_titulo = request.json.get(
+            "encabezado_titulo", "IEEE Computer Society").strip()
+        encabezado_subtitulo = request.json.get(
+            "encabezado_subtitulo", "").strip()
+
+        # Colores
+        firma_color = request.json.get("firma_color", "#dce8f4").strip()
+        viñetas_color = request.json.get("viñetas_color", "#ffd166").strip()
+        color_encabezado = request.json.get(
+            "color_encabezado", "#00629B").strip()
+        color_cuerpo = request.json.get("color_cuerpo", "#0b3f66").strip()
+
+        # Copyright
+        copyright = request.json.get("copyright", "").strip()
+
+        # Estilos de firma y imágenes
+        firma_estilos = request.json.get("firma_estilos", [])
+        imagenes_seleccionadas = request.json.get("imagenes", [])
+
+        # Generar HTML usando la misma función que para envío real
+        html_correo = generar_cuerpo_html_personalizado(
+            detalle=detalle,
+            firma=firma,
+            imagenes_seleccionadas=imagenes_seleccionadas,
+            encabezado_titulo=encabezado_titulo,
+            encabezado_subtitulo=encabezado_subtitulo,
+            firma_color=firma_color,
+            firma_estilos=firma_estilos,
+            viñetas_color=viñetas_color,
+            color_encabezado=color_encabezado,
+            color_cuerpo=color_cuerpo,
+            copyright=copyright
+        )
+
+        # Retornar respuesta JSON con el HTML y metadatos
+        return jsonify({
+            "success": True,
+            "html": html_correo,
+            "metadata": {
+                "destinatario": destinatario,
+                "cc": cc,
+                "asunto": asunto
+            }
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+
 @app.route("/correo_personalizado", methods=["GET"])
 def correo_personalizado():
     """

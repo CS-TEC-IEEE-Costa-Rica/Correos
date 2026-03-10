@@ -232,7 +232,13 @@ O crea un archivo `contactos.xlsx` vacío (la aplicación lo inicializará autom
 
 #### 5. Configurar variables de entorno
 
-Crea un archivo `.env` en la raíz del proyecto (ver sección [Configuración SMTP](#configuración-smtp)).
+Copia el archivo de ejemplo como base:
+
+```bash
+cp .env.example .env
+```
+
+Luego edita `.env` con tus credenciales reales (ver sección [Configuración SMTP](#configuración-smtp)).
 
 #### 6. Iniciar la aplicación
 
@@ -276,10 +282,10 @@ cp contactos.xlsx.example contactos.xlsx
 
 #### 4. Configurar variables de entorno
 
-Crea un archivo `.env` en la raíz del proyecto:
+Copia el archivo de ejemplo como base:
 
 ```bash
-touch .env
+cp .env.example .env
 ```
 
 Abre el archivo `.env` y completa las credenciales (ver sección [Configuración SMTP](#configuración-smtp)).
@@ -479,6 +485,9 @@ Correos/
 │   ├── SMTP_PORT                     # Puerto SMTP (587)
 │   └── FLASK_SECRET_KEY              # Clave secreta de Flask
 │
+├── 📄 .env.example                    # Template de variables de entorno (sí se sube a Git)
+│   └── (Mismas variables que .env con valores de ejemplo)
+│
 ├── 📄 configuracion.json              # Configuración persistente (NO se sube a Git)
 │   ├── alias_emails[]                # Lista de correos alias
 │   ├── mensajes_predeterminados{}    # Mensajes predefinidos
@@ -489,6 +498,8 @@ Correos/
 ├── 📄 contactos.xlsx.example          # Archivo de ejemplo para contactos
 │
 ├── 📄 README.md                       # Este archivo - Documentación completa
+├── 📄 PREVIEW_SYSTEM.md               # Documentación del sistema de vista previa
+├── 📄 PRINT_SYSTEM.md                 # Documentación del sistema de impresión/PDF
 ├── 📄 .gitignore                      # Archivos excluidos de Git
 │
 ├── 📂 templates/                      # Plantillas HTML (Jinja2)
@@ -548,6 +559,8 @@ Correos/
 | `/reimportar` | GET | Reinicia datos desde Excel |
 | `/eliminar/<id>` | GET | Elimina contacto del Excel |
 | `/correo_personalizado` | GET | Formulario de correo personalizado con editor |
+| `/api/preview_correo_personalizado` | POST | API para generar vista previa del correo |
+| `/api/configuracion` | GET | API para obtener configuración actual |
 | `/enviar_correo_personalizado` | POST | Procesa y envía correo personalizado |
 | `/configuracion` | GET | Panel de configuración del sistema |
 | `/guardar_configuracion` | POST | Guarda configuración (alias, colores, mensajes) |

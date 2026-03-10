@@ -33,5 +33,6 @@ database.db
 
 # Secrets / local config
 .env
-.env.*
+.env.local
+.env.*.local
 *.local
