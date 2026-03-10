@@ -99,6 +99,11 @@ Sistema web desarrollado en Flask para el **IEEE Computer Society del Instituto 
   - Sangría y formato avanzado
 - 👁️ **Vista previa en tiempo real** antes de enviar
 - ✅ **Compatible con clientes de correo**: Gmail, Outlook, Apple Mail, etc.
+- 📬 **Campo CC (Copia con Copia)**: Enviar copia del correo a múltiples destinatarios
+  - Soporta múltiples direcciones separadas por comas o punto y coma
+  - Validación automática de formato de cada correo
+  - Los destinatarios en CC aparecen en la cabecera del correo
+  - Opcional: no es obligatorio para enviar
 
 ### 📊 Panel de Control (Dashboard)
 
@@ -228,7 +233,8 @@ pip install -r requirements.txt
 - `Flask==3.0.0`: Framework web
 - `pandas==2.1.4; python_version < "3.14"`: Manipulación de datos (Python 3.8 a 3.13)
 - `pandas>=2.2; python_version >= "3.14"`: Compatibilidad con Python 3.14+
-- `openpyxl==3.1.2`: Lectura/escritura de Excel
+- `openpyxl>=3.1.5`: Lectura/escritura de Excel
+- `python-dotenv>=1.0.0`: Carga de variables de entorno desde archivo .env
 
 ### 5. Verificar Instalación
 
@@ -240,7 +246,52 @@ python -c "import flask, pandas, openpyxl; print('✅ Todas las dependencias ins
 
 ## 🔧 Configuración SMTP
 
-### Variables de Entorno (Recomendado)
+### Método Recomendado: Archivo `.env`
+
+La aplicación utiliza `python-dotenv` para cargar credenciales desde un archivo `.env`.
+
+#### 1. Crear el archivo `.env`
+
+Copia el archivo de ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+O créalo manualmente en la raíz del proyecto:
+
+```ini
+# Credenciales del remitente
+EMAIL_REMITENTE=tu-correo@gmail.com
+EMAIL_PASSWORD=tu-contraseña-de-aplicacion-aqui
+
+# Configuración del servidor SMTP
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+
+# Clave secreta para Flask
+FLASK_SECRET_KEY=cambia-esto-por-una-clave-secreta-aleatoria
+```
+
+#### 2. Configurar Contraseña de Aplicación (Gmail)
+
+Para **Gmail**, no uses tu contraseña normal. Necesitas crear una **Contraseña de Aplicación**:
+
+1. Ve a [Cuenta de Google → Seguridad](https://myaccount.google.com/security)
+2. Activa la **Verificación en dos pasos** (si no la tienes)
+3. Busca **"Contraseñas de aplicaciones"**
+4. Genera una nueva contraseña para "Correo"
+5. Copia la contraseña de 16 caracteres y pégala en `.env`
+
+**Ejemplo:**
+```ini
+EMAIL_REMITENTE=julio.barrios@gmail.com
+EMAIL_PASSWORD=abcd efgh ijkl mnop
+```
+
+> ⚠️ **Importante:** El archivo `.env` está en `.gitignore` y **nunca se subirá a GitHub**.
+
+### Método Alternativo: Variables de Entorno del Sistema
 
 #### Windows (PowerShell)
 
@@ -858,6 +909,62 @@ git commit -m "Descripción del cambio"
 # 4. Subir a GitHub
 git push
 ```
+
+---
+
+## ☁️ Ejecutar en GitHub Codespaces
+
+GitHub Codespaces te permite ejecutar esta aplicación directamente en la nube sin instalar nada localmente.
+
+### Inicio Rápido en Codespaces
+
+1. **Abre tu repositorio en GitHub**
+2. Click en el botón verde **"<> Code"**
+3. Selecciona la pestaña **"Codespaces"**
+4. Click en **"Create codespace on main"**
+
+### Configuración Automática
+
+El Codespace instalará automáticamente Python 3 y todas las dependencias.
+
+### Configurar Credenciales SMTP
+
+Una vez que el Codespace esté listo:
+
+```bash
+# 1. Copia el archivo de ejemplo
+cp .env.example .env
+
+# 2. Edita el archivo .env con tus credenciales
+nano .env
+# O usa el editor de VS Code integrado
+
+# 3. Instala dependencias (si no se instalaron automáticamente)
+pip install -r requirements.txt
+
+# 4. Inicia la aplicación
+python app.py
+```
+
+### Acceder a la Aplicación
+
+Codespaces detectará automáticamente el puerto 5000 y mostrará un popup.
+También puedes:
+- Click en la pestaña **"Ports"** en el panel inferior
+- Click en el icono de **"Open in Browser"** 🌐 junto al puerto 5000
+
+La URL será algo como: `https://tu-usuario-nombre-repo-5000.app.github.dev`
+
+### Ventajas de Codespaces
+
+- ✅ No requiere instalación local
+- ✅ Python 3 preconfigurado
+- ✅ Entorno consistente para todo el equipo
+- ✅ Accesible desde cualquier dispositivo
+- ✅ 60 horas gratis al mes para usuarios gratuitos
+- ✅ Integración completa con VS Code
+
+> 📖 Consulta `CODESPACES.md` para instrucciones detalladas.
 
 ---
 

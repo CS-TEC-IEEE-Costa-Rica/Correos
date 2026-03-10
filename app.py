@@ -9,6 +9,9 @@
 import os
 import re
 import smtplib
+import shutil
+import tempfile
+import threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -16,14 +19,18 @@ from datetime import datetime
 
 import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde archivo .env si existe
+load_dotenv()
 
 # ==============================================================================
 # CONFIGURACIÓN DEL SISTEMA
 # ==============================================================================
 
-# Credenciales SMTP (local): usa variables de entorno si existen, si no usa valores por defecto.
-EMAIL_REMITENTE = os.getenv("EMAIL_REMITENTE", "julio.barrios@ieee.org")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "kbzm sovh apgs ulah")
+# Credenciales SMTP: usa variables de entorno (archivo .env o variables del sistema)
+EMAIL_REMITENTE = os.getenv("EMAIL_REMITENTE", "")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
 EMAIL_PASSWORD = EMAIL_PASSWORD.replace(" ", "")
 
 # Configuración del servidor SMTP (por defecto Gmail con TLS)
@@ -48,6 +55,45 @@ SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-in-production"
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
+# Estructura base del archivo Excel y control de logs de error repetidos.
+EXCEL_COLUMNS = ["empresa", "contacto", "correo", "enviado", "fecha_envio"]
+_excel_error_reportado = False
+EXCEL_LOCK = threading.RLock()
+
+
+def _parametros_contactos_desde_request():
+    """
+    Conserva filtros y paginación para redirecciones de vuelta a /contactos.
+    """
+    return {
+        "q": request.args.get("q", "").strip(),
+        "estado": request.args.get("estado", "todos").strip().lower(),
+        "sort": request.args.get("sort", "excel").strip().lower(),
+        "dir": request.args.get("dir", "asc").strip().lower(),
+        "page": request.args.get("page", "1").strip() or "1",
+    }
+
+
+def _escribir_excel_atomico(df):
+    """
+    Escribe el Excel de forma atómica para evitar archivos parciales/corruptos.
+    """
+    archivo_tmp = None
+    try:
+        excel_dir = os.path.dirname(EXCEL_PATH) or BASE_DIR
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir=excel_dir) as tmp:
+            archivo_tmp = tmp.name
+
+        df.to_excel(archivo_tmp, index=False, engine="openpyxl")
+        os.replace(archivo_tmp, EXCEL_PATH)
+        return True
+    finally:
+        if archivo_tmp and os.path.exists(archivo_tmp):
+            try:
+                os.remove(archivo_tmp)
+            except Exception:
+                pass
+
 
 # ==============================================================================
 # FUNCIONES DE MANEJO DE EXCEL
@@ -58,46 +104,92 @@ def inicializar_excel():
     Verifica que el archivo Excel exista y tenga las columnas necesarias.
     Si no existe, crea un archivo vacío con la estructura correcta.
     """
-    if not os.path.exists(EXCEL_PATH):
-        # Crear archivo vacío con estructura
-        df = pd.DataFrame(columns=["empresa", "contacto", "correo", "enviado", "fecha_envio"])
-        df.to_excel(EXCEL_PATH, index=False, engine="openpyxl")
-        return True
-    
-    # Verificar y agregar columnas faltantes
-    try:
-        df = pd.read_excel(EXCEL_PATH, engine="openpyxl")
-        
-        # Agregar columna "enviado" si no existe
-        if "enviado" not in df.columns:
-            df["enviado"] = "no"
-        
-        # Agregar columna "fecha_envio" si no existe
-        if "fecha_envio" not in df.columns:
-            df["fecha_envio"] = ""
-        
-        # Asegurar que las columnas básicas existan
-        columnas_requeridas = ["empresa", "contacto", "correo"]
-        for col in columnas_requeridas:
-            if col not in df.columns:
-                df[col] = ""
-        
-        # Reordenar columnas
-        df = df[["empresa", "contacto", "correo", "enviado", "fecha_envio"]]
-        
-        # Limpiar valores NaN
-        df = df.fillna("")
-        
-        # Asegurar que "enviado" solo tenga "si" o "no"
-        df["enviado"] = df["enviado"].apply(lambda x: "si" if str(x).lower() in ["si", "sí", "yes", "1"] else "no")
-        
-        # Guardar cambios
-        df.to_excel(EXCEL_PATH, index=False, engine="openpyxl")
-        return True
-        
-    except Exception as e:
-        print(f"Error al inicializar Excel: {e}")
-        return False
+    with EXCEL_LOCK:
+        if not os.path.exists(EXCEL_PATH):
+            # Crear archivo vacío con estructura
+            df = pd.DataFrame(columns=EXCEL_COLUMNS)
+            return _escribir_excel_atomico(df)
+
+        # Verificar y agregar columnas faltantes
+        try:
+            df = pd.read_excel(EXCEL_PATH, engine="openpyxl")
+
+            # Agregar columna "enviado" si no existe
+            if "enviado" not in df.columns:
+                df["enviado"] = "no"
+
+            # Agregar columna "fecha_envio" si no existe
+            if "fecha_envio" not in df.columns:
+                df["fecha_envio"] = ""
+
+            # Asegurar que las columnas básicas existan
+            columnas_requeridas = ["empresa", "contacto", "correo"]
+            for col in columnas_requeridas:
+                if col not in df.columns:
+                    df[col] = ""
+
+            # Reordenar columnas
+            df = df[EXCEL_COLUMNS]
+
+            # Limpiar valores NaN
+            df = df.fillna("")
+
+            # Asegurar que "enviado" solo tenga "si" o "no"
+            df["enviado"] = df["enviado"].apply(lambda x: "si" if str(x).lower() in ["si", "sí", "yes", "1"] else "no")
+
+            # Guardar cambios
+            return _escribir_excel_atomico(df)
+
+        except Exception as e:
+            print(f"Error al inicializar Excel: {e}")
+
+            # Si el Excel está corrupto, lo respaldamos y regeneramos para que
+            # la aplicación pueda seguir operando con un archivo válido.
+            if es_error_excel_corrupto(e):
+                return reparar_excel_corrupto()
+
+            return False
+
+
+def es_error_excel_corrupto(error):
+    """
+    Detecta mensajes comunes de corrupción/integridad en archivos XLSX.
+    """
+    texto = f"{type(error).__name__}: {error}".lower()
+    patrones = [
+        "invalid block type",
+        "invalid distance too far back",
+        "while decompressing data",
+        "badzipfile",
+        "file is not a zip file",
+        "truncated file header",
+        "bad crc-32",
+    ]
+    return any(p in texto for p in patrones)
+
+
+def reparar_excel_corrupto():
+    """
+    Respaldar el archivo corrupto y crear uno nuevo con estructura válida.
+    """
+    with EXCEL_LOCK:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = f"{EXCEL_PATH}.corrupto_{timestamp}.bak"
+
+        try:
+            if os.path.exists(EXCEL_PATH):
+                shutil.copy2(EXCEL_PATH, backup_path)
+                print(f"[WARN] Excel corrupto respaldado en: {backup_path}")
+
+            df = pd.DataFrame(columns=EXCEL_COLUMNS)
+            if _escribir_excel_atomico(df):
+                print(f"[OK] Se regeneró el archivo Excel: {EXCEL_PATH}")
+                return True
+
+            return False
+        except Exception as e:
+            print(f"[ERROR] No se pudo reparar el archivo Excel: {e}")
+            return False
 
 
 def leer_contactos():
@@ -105,23 +197,40 @@ def leer_contactos():
     Lee todos los contactos del archivo Excel.
     Retorna un DataFrame de pandas.
     """
-    if not os.path.exists(EXCEL_PATH):
-        return pd.DataFrame(columns=["empresa", "contacto", "correo", "enviado", "fecha_envio"])
-    
-    try:
-        df = pd.read_excel(EXCEL_PATH, engine="openpyxl")
-        df = df.fillna("")
-        
-        # Asegurar que las columnas existan
-        if "enviado" not in df.columns:
-            df["enviado"] = "no"
-        if "fecha_envio" not in df.columns:
-            df["fecha_envio"] = ""
-        
-        return df
-    except Exception as e:
-        print(f"Error al leer Excel: {e}")
-        return pd.DataFrame(columns=["empresa", "contacto", "correo", "enviado", "fecha_envio"])
+    global _excel_error_reportado
+
+    with EXCEL_LOCK:
+        if not os.path.exists(EXCEL_PATH):
+            return pd.DataFrame(columns=EXCEL_COLUMNS)
+
+        try:
+            df = pd.read_excel(EXCEL_PATH, engine="openpyxl")
+            df = df.fillna("")
+
+            # Asegurar que las columnas existan
+            if "enviado" not in df.columns:
+                df["enviado"] = "no"
+            if "fecha_envio" not in df.columns:
+                df["fecha_envio"] = ""
+
+            _excel_error_reportado = False
+            return df
+        except Exception as e:
+            # Evita inundar la consola con el mismo error en cada request.
+            if not _excel_error_reportado:
+                print(f"Error al leer Excel: {e}")
+                _excel_error_reportado = True
+
+            if es_error_excel_corrupto(e):
+                if reparar_excel_corrupto():
+                    try:
+                        df = pd.read_excel(EXCEL_PATH, engine="openpyxl").fillna("")
+                        _excel_error_reportado = False
+                        return df
+                    except Exception as e2:
+                        print(f"[ERROR] Falló la lectura después de reparar Excel: {e2}")
+
+            return pd.DataFrame(columns=EXCEL_COLUMNS)
 
 
 def guardar_contactos(df):
@@ -129,13 +238,13 @@ def guardar_contactos(df):
     Guarda el DataFrame completo en el archivo Excel.
     Sobrescribe el archivo existente.
     """
-    try:
-        df = df.fillna("")
-        df.to_excel(EXCEL_PATH, index=False, engine="openpyxl")
-        return True
-    except Exception as e:
-        print(f"Error al guardar Excel: {e}")
-        return False
+    with EXCEL_LOCK:
+        try:
+            df = df.fillna("")
+            return _escribir_excel_atomico(df)
+        except Exception as e:
+            print(f"Error al guardar Excel: {e}")
+            return False
 
 
 def obtener_contacto_por_indice(indice):
@@ -157,24 +266,25 @@ def agregar_contacto(empresa, contacto, correo):
     Agrega un nuevo contacto al archivo Excel.
     Verifica duplicados por correo.
     """
-    df = leer_contactos()
-    
-    # Verificar duplicados
-    if correo.lower() in df["correo"].str.lower().values:
-        return False
-    
-    # Crear nuevo registro
-    nuevo = pd.DataFrame([{
-        "empresa": empresa.strip(),
-        "contacto": contacto.strip(),
-        "correo": correo.strip().lower(),
-        "enviado": "no",
-        "fecha_envio": ""
-    }])
-    
-    # Concatenar y guardar
-    df = pd.concat([df, nuevo], ignore_index=True)
-    return guardar_contactos(df)
+    with EXCEL_LOCK:
+        df = leer_contactos()
+
+        # Verificar duplicados
+        if correo.lower() in df["correo"].str.lower().values:
+            return False
+
+        # Crear nuevo registro
+        nuevo = pd.DataFrame([{
+            "empresa": empresa.strip(),
+            "contacto": contacto.strip(),
+            "correo": correo.strip().lower(),
+            "enviado": "no",
+            "fecha_envio": ""
+        }])
+
+        # Concatenar y guardar
+        df = pd.concat([df, nuevo], ignore_index=True)
+        return guardar_contactos(df)
 
 
 def actualizar_estado_envio(indice, enviado, fecha=None):
@@ -183,28 +293,30 @@ def actualizar_estado_envio(indice, enviado, fecha=None):
     enviado: "si" o "no"
     fecha: fecha y hora del envío (opcional)
     """
-    df = leer_contactos()
-    
-    if indice < 0 or indice >= len(df):
-        return False
-    
-    df.at[indice, "enviado"] = enviado
-    df.at[indice, "fecha_envio"] = fecha if fecha else ""
-    
-    return guardar_contactos(df)
+    with EXCEL_LOCK:
+        df = leer_contactos()
+
+        if indice < 0 or indice >= len(df):
+            return False
+
+        df.at[indice, "enviado"] = enviado
+        df.at[indice, "fecha_envio"] = fecha if fecha else ""
+
+        return guardar_contactos(df)
 
 
 def eliminar_contacto(indice):
     """
     Elimina un contacto del archivo Excel por su índice.
     """
-    df = leer_contactos()
-    
-    if indice < 0 or indice >= len(df):
-        return False
-    
-    df = df.drop(indice).reset_index(drop=True)
-    return guardar_contactos(df)
+    with EXCEL_LOCK:
+        df = leer_contactos()
+
+        if indice < 0 or indice >= len(df):
+            return False
+
+        df = df.drop(indice).reset_index(drop=True)
+        return guardar_contactos(df)
 
 
 def obtener_estadisticas():
@@ -802,7 +914,7 @@ julio.barrios@ieee.org"""
 def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, imagenes_seleccionadas,
                                     encabezado_titulo="", encabezado_subtitulo="",
                                     firma_color="#dce8f4", firma_estilos=None, viñetas_color="#ffd166",
-                                    color_encabezado="#00629B", color_cuerpo="#0b3f66"):
+                                    color_encabezado="#00629B", color_cuerpo="#0b3f66", cc_list=None):
     """
     Envía un correo electrónico personalizado usando SMTP con TLS.
     Permite seleccionar las imágenes del encabezado y personalizar estilos de firma.
@@ -836,6 +948,9 @@ def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, image
     mensaje = MIMEMultipart("related")
     mensaje["From"] = EMAIL_REMITENTE
     mensaje["To"] = destinatario
+    # Añadir CC en cabecera si se proporcionó
+    if cc_list:
+        mensaje["Cc"] = ", ".join(cc_list)
     mensaje["Subject"] = asunto
 
     # El HTML vive dentro de multipart/alternative para compatibilidad con clientes.
@@ -868,7 +983,11 @@ def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, image
         servidor.starttls()
         servidor.ehlo()
         servidor.login(EMAIL_REMITENTE, EMAIL_PASSWORD)
-        servidor.sendmail(EMAIL_REMITENTE, destinatario, mensaje.as_string())
+        # Enviar a destinatario principal y a los CC (si los hay)
+        destinatarios_envio = [destinatario]
+        if cc_list:
+            destinatarios_envio += cc_list
+        servidor.sendmail(EMAIL_REMITENTE, destinatarios_envio, mensaje.as_string())
         servidor.quit()
 
         return {"exito": True, "mensaje": f"Correo enviado exitosamente a {destinatario}"}
@@ -1053,10 +1172,11 @@ def enviar(id):
     Actualiza el estado de envío según el resultado.
     """
     contacto = obtener_contacto_por_indice(id)
+    return_params = _parametros_contactos_desde_request()
 
     if not contacto:
         flash("Contacto no encontrado.", "error")
-        return redirect(url_for("contactos"))
+        return redirect(url_for("contactos", **return_params))
 
     # Ejecutar envío de correo
     resultado = enviar_correo(
@@ -1074,7 +1194,7 @@ def enviar(id):
         # No cambiamos el estado si falla
         flash(resultado["mensaje"], "error")
 
-    return redirect(url_for("contactos"))
+    return redirect(url_for("contactos", **return_params))
 
 
 @app.route("/vista_previa/<int:id>")
@@ -1112,12 +1232,14 @@ def reimportar():
     Ruta para reinicializar el archivo Excel.
     Verifica las columnas necesarias.
     """
+    return_params = _parametros_contactos_desde_request()
+
     if inicializar_excel():
         flash("Archivo Excel actualizado correctamente.", "success")
     else:
         flash("Error al actualizar el archivo Excel.", "error")
 
-    return redirect(url_for("contactos"))
+    return redirect(url_for("contactos", **return_params))
 
 
 @app.route("/eliminar/<int:id>")
@@ -1126,17 +1248,18 @@ def eliminar(id):
     Ruta para eliminar un contacto específico del Excel.
     """
     contacto = obtener_contacto_por_indice(id)
+    return_params = _parametros_contactos_desde_request()
 
     if not contacto:
         flash("Contacto no encontrado.", "error")
-        return redirect(url_for("contactos"))
+        return redirect(url_for("contactos", **return_params))
 
     if eliminar_contacto(id):
         flash(f"Contacto '{contacto['empresa']}' eliminado correctamente.", "success")
     else:
         flash("Error al eliminar el contacto.", "error")
 
-    return redirect(url_for("contactos"))
+    return redirect(url_for("contactos", **return_params))
 
 
 @app.route("/correo_personalizado", methods=["GET"])
@@ -1177,6 +1300,13 @@ def enviar_correo_personalizado():
     # Obtener imágenes seleccionadas (pueden ser múltiples)
     imagenes_seleccionadas = request.form.getlist("imagenes")
     
+    # Campo CC (opcional) - puede contener múltiples direcciones separadas por comas o punto y coma
+    cc_raw = request.form.get("cc", "").strip()
+    # Parsear lista de CC separada por comas o punto y coma
+    cc_list = []
+    if cc_raw:
+        cc_list = [c.strip().lower() for c in re.split(r'[;,]', cc_raw) if c.strip()]
+
     # Validar campos obligatorios
     if not destinatario:
         flash("El campo 'Destinatario' es obligatorio.", "error")
@@ -1194,6 +1324,12 @@ def enviar_correo_personalizado():
     if not validar_correo(destinatario):
         flash("El formato del correo electrónico del destinatario no es válido.", "error")
         return redirect(url_for("correo_personalizado"))
+
+    # Validar formato de CC (si se proporcionaron)
+    for cc in cc_list:
+        if not validar_correo(cc):
+            flash(f"El correo en CC '{cc}' no tiene un formato válido.", "error")
+            return redirect(url_for("correo_personalizado"))
     
     # Validar que haya al menos una imagen seleccionada
     if not imagenes_seleccionadas:
@@ -1213,7 +1349,8 @@ def enviar_correo_personalizado():
         firma_estilos=firma_estilos,
         viñetas_color=viñetas_color,
         color_encabezado=color_encabezado,
-        color_cuerpo=color_cuerpo
+        color_cuerpo=color_cuerpo,
+        cc_list=cc_list
     )
     
     if resultado["exito"]:

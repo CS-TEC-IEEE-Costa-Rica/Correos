@@ -406,6 +406,20 @@
                     </div>
 
                     <div class="form-group-custom">
+                        <label class="form-label-custom" for="cc">
+                            Copia (CC)
+                        </label>
+                        <input
+                            type="text"
+                            id="cc"
+                            name="cc"
+                            class="form-input-custom"
+                            placeholder="correo1@ejemplo.com, correo2@ejemplo.com (separados por comas o ; )"
+                        >
+                        <p class="form-help-text">Opcional. Ingrese correos para enviar copia, separados por comas o punto y coma.</p>
+                    </div>
+
+                    <div class="form-group-custom">
                         <label class="form-label-custom" for="asunto">
                             Asunto del Correo <span class="required">*</span>
                         </label>
@@ -711,6 +725,7 @@ julio.barrios@ieee.org"
         // FUNCIONES DE VISTA PREVIA
         function mostrarVistaPrevia() {
             const destinatario = document.getElementById('destinatario').value;
+            const cc = document.getElementById('cc').value;
             const asunto = document.getElementById('asunto').value;
             const detalle = quill.root.innerHTML;
             const firma = document.getElementById('firma').value;
@@ -735,6 +750,7 @@ julio.barrios@ieee.org"
             // Generar vista previa
             const previewHTML = generarVistaPrevia(
                 destinatario, 
+                cc,
                 asunto, 
                 detalle, 
                 firma, 
@@ -752,7 +768,7 @@ julio.barrios@ieee.org"
             document.getElementById('modalVistaPrevia').style.display = 'none';
         }
 
-        function generarVistaPrevia(destinatario, asunto, detalle, firma, imagenes, encabezadoTitulo, encabezadoSubtitulo, colorEncabezado, colorCuerpo) {
+        function generarVistaPrevia(destinatario, cc, asunto, detalle, firma, imagenes, encabezadoTitulo, encabezadoSubtitulo, colorEncabezado, colorCuerpo) {
             // Generar HTML de imágenes
             let imagenesHTML = '';
             
@@ -803,6 +819,7 @@ julio.barrios@ieee.org`;
             return `
                 <div style="margin-bottom: 20px; padding: 16px; background-color: #f8f9fa; border-radius: 6px;">
                     <p style="margin: 0 0 8px 0;"><strong>Para:</strong> ${destinatario}</p>
+                    ${cc ? `<p style="margin: 0 0 8px 0;"><strong>CC:</strong> ${cc}</p>` : ''}
                     <p style="margin: 0;"><strong>Asunto:</strong> ${asunto}</p>
                 </div>
                 <div style="background-color: #f4f6f9; padding: 20px;">

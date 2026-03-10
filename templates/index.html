@@ -131,7 +131,7 @@
         <section class="toolbar">
             <h2 class="section-title">Directorio de Contactos</h2>
             <div class="toolbar-actions">
-                <a href="{{ url_for('reimportar') }}" class="btn btn-secondary" title="Reimportar desde contactos.xlsx">
+                <a href="{{ url_for('reimportar', q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_actual) }}" class="btn btn-secondary" title="Reimportar desde contactos.xlsx">
                     <span class="btn-icon">&#8635;</span> Reimportar Excel
                 </a>
             </div>
@@ -243,13 +243,13 @@
                                     </td>
                                     <td class="td-acciones">
                                         <div class="acciones-group">
-                                            <a href="{{ url_for('enviar', id=c.id) }}"
+                                                          <a href="{{ url_for('enviar', id=c.id, q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_actual) }}"
                                                class="btn btn-sm btn-enviar"
                                                title="Enviar correo a {{ c.correo }}"
-                                               onclick="return confirm('¿Enviar correo institucional a {{ c.correo }}?')">
+                                                              onclick="return confirmarYBloquearEnvio(this, '{{ c.correo }}')">
                                                 &#9993; Enviar
                                             </a>
-                                            <a href="{{ url_for('eliminar', id=c.id) }}"
+                                                          <a href="{{ url_for('eliminar', id=c.id, q=filtros.q, estado=filtros.estado, sort=filtros.sort, dir=filtros.dir, page=paginacion.pagina_actual) }}"
                                                class="btn btn-sm btn-eliminar"
                                                title="Eliminar contacto"
                                                onclick="return confirm('¿Está seguro de eliminar el contacto de {{ c.empresa }}?')">
@@ -407,6 +407,22 @@
         function cerrarModal() {
             const modal = document.getElementById("modalVistaPrevia");
             modal.style.display = "none";
+        }
+
+        function confirmarYBloquearEnvio(el, correo) {
+            if (el.dataset.sending === "1") {
+                return false;
+            }
+
+            if (!confirm(`¿Enviar correo institucional a ${correo}?`)) {
+                return false;
+            }
+
+            el.dataset.sending = "1";
+            el.style.pointerEvents = "none";
+            el.style.opacity = "0.65";
+            el.innerHTML = "&#8987; Enviando...";
+            return true;
         }
 
         // Cerrar modal al hacer clic fuera de él

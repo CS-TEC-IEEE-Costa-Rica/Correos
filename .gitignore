@@ -29,6 +29,7 @@ Thumbs.db
 # Local data files (do not commit real contact info)
 contactos.xlsx
 database.db
+*.bak
 
 # Secrets / local config
 .env
