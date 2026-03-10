@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IEEE — Correo Personalizado</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
+
     <!-- Quill.js CSS -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    
+
     <style>
         .correo-container {
             max-width: 900px;
@@ -52,7 +53,7 @@
             border: 2px solid #e9ecef;
             border-radius: 12px;
             padding: 40px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .form-section {
@@ -93,7 +94,7 @@
         .form-input-custom:focus {
             outline: none;
             border-color: #00629B;
-            box-shadow: 0 0 0 3px rgba(0,98,155,0.1);
+            box-shadow: 0 0 0 3px rgba(0, 98, 155, 0.1);
         }
 
         .form-textarea-custom {
@@ -112,7 +113,7 @@
         .form-textarea-custom:focus {
             outline: none;
             border-color: #00629B;
-            box-shadow: 0 0 0 3px rgba(0,98,155,0.1);
+            box-shadow: 0 0 0 3px rgba(0, 98, 155, 0.1);
         }
 
         .checkbox-group {
@@ -151,7 +152,7 @@
             flex: 1;
         }
 
-        .checkbox-item input[type="checkbox"]:checked + label {
+        .checkbox-item input[type="checkbox"]:checked+label {
             color: #00629B;
         }
 
@@ -180,7 +181,7 @@
         .btn-submit:hover {
             background: linear-gradient(135deg, #004A7C 0%, #00629B 100%);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,98,155,0.3);
+            box-shadow: 0 4px 12px rgba(0, 98, 155, 0.3);
         }
 
         .btn-preview {
@@ -199,7 +200,7 @@
         .btn-preview:hover {
             background: #5a6268;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(108,117,125,0.3);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
         }
 
         .required {
@@ -222,7 +223,7 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.6);
+            background-color: rgba(0, 0, 0, 0.6);
         }
 
         .modal-preview-content {
@@ -232,7 +233,7 @@
             border-radius: 12px;
             width: 90%;
             max-width: 800px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         .modal-preview-header {
@@ -268,6 +269,11 @@
             padding: 30px;
             max-height: 70vh;
             overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        .modal-preview-body table {
+            max-width: 100%;
         }
 
         /* Estilos para el editor Quill */
@@ -336,6 +342,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- HEADER INSTITUCIONAL -->
@@ -351,8 +358,13 @@
     </header>
 
     <!-- BOTÓN VOLVER AL DASHBOARD -->
-    <div style="position: absolute; top: 20px; right: 20px;">
-        <a href="{{ url_for('dashboard_principal') }}" class="btn btn-secondary" title="Volver al Dashboard" style="padding: 10px 16px; font-size: 14px;">
+    <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px;">
+        <a href="{{ url_for('configuracion') }}" class="btn btn-secondary" title="Configuración del Sistema"
+            style="padding: 10px 16px; font-size: 14px;">
+            ⚙️ Configuración
+        </a>
+        <a href="{{ url_for('dashboard_principal') }}" class="btn btn-secondary" title="Volver al Dashboard"
+            style="padding: 10px 16px; font-size: 14px;">
             ← Dashboard
         </a>
     </div>
@@ -368,40 +380,47 @@
 
         <!-- MENSAJES FLASH -->
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-container">
-                    {% for category, message in messages %}
-                        <div class="flash flash-{{ category }}">
-                            <span class="flash-icon">
-                                {% if category == 'success' %}&#10004;{% elif category == 'error' %}&#10006;{% elif category == 'warning' %}&#9888;{% else %}&#8505;{% endif %}
-                            </span>
-                            <span class="flash-text">{{ message }}</span>
-                            <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+                <span class="flash-icon">
+                    {% if category == 'success' %}&#10004;{% elif category == 'error' %}&#10006;{% elif category ==
+                    'warning' %}&#9888;{% else %}&#8505;{% endif %}
+                </span>
+                <span class="flash-text">{{ message }}</span>
+                <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% endwith %}
 
         <div class="correo-form-card">
             <form action="{{ url_for('enviar_correo_personalizado') }}" method="POST" id="correoForm">
-                
+
                 <!-- Sección: Información del Destinatario -->
                 <div class="form-section">
                     <h3 class="form-section-title">📧 Información del Destinatario</h3>
-                    
+
+                    <div class="form-group-custom">
+                        <label class="form-label-custom" for="alias_email">
+                            Alias de Correo (desde donde se envía) <span class="required">*</span>
+                        </label>
+                        <select id="alias_email" name="alias_email" class="form-input-custom" required>
+                            <option value="">-- Seleccionar alias de correo --</option>
+                        </select>
+                        <p class="form-help-text">Selecciona desde qué correo deseas enviar. Configura más alias en <a
+                                href="{{ url_for('configuracion') }}" style="color: #00629B; font-weight: 600;">⚙️
+                                Configuración</a></p>
+                    </div>
+
                     <div class="form-group-custom">
                         <label class="form-label-custom" for="destinatario">
                             Correo Electrónico del Destinatario <span class="required">*</span>
                         </label>
-                        <input 
-                            type="email" 
-                            id="destinatario" 
-                            name="destinatario" 
-                            class="form-input-custom"
-                            placeholder="ejemplo@empresa.com"
-                            required
-                        >
+                        <input type="email" id="destinatario" name="destinatario" class="form-input-custom"
+                            placeholder="ejemplo@empresa.com" required>
                         <p class="form-help-text">Ingrese el correo electrónico del destinatario</p>
                     </div>
 
@@ -409,89 +428,57 @@
                         <label class="form-label-custom" for="cc">
                             Copia (CC)
                         </label>
-                        <input
-                            type="text"
-                            id="cc"
-                            name="cc"
-                            class="form-input-custom"
-                            placeholder="correo1@ejemplo.com, correo2@ejemplo.com (separados por comas o ; )"
-                        >
-                        <p class="form-help-text">Opcional. Ingrese correos para enviar copia, separados por comas o punto y coma.</p>
+                        <input type="text" id="cc" name="cc" class="form-input-custom"
+                            placeholder="correo1@ejemplo.com, correo2@ejemplo.com (separados por comas o ; )">
+                        <p class="form-help-text">Opcional. Ingrese correos para enviar copia, separados por comas o
+                            punto y coma.</p>
                     </div>
 
                     <div class="form-group-custom">
                         <label class="form-label-custom" for="asunto">
                             Asunto del Correo <span class="required">*</span>
                         </label>
-                        <input 
-                            type="text" 
-                            id="asunto" 
-                            name="asunto" 
-                            class="form-input-custom"
-                            placeholder="Escriba el asunto del correo"
-                            required
-                        >
+                        <input type="text" id="asunto" name="asunto" class="form-input-custom"
+                            placeholder="Escriba el asunto del correo" required>
                     </div>
                 </div>
 
                 <!-- Sección: Encabezado Personalizable -->
                 <div class="form-section">
                     <h3 class="form-section-title">🎨 Encabezado Personalizable</h3>
-                    
+
                     <div class="form-group-custom">
                         <label class="form-label-custom" for="encabezado_titulo">
                             Título <span class="required">*</span>
                         </label>
-                        <input 
-                            type="text" 
-                            id="encabezado_titulo" 
-                            name="encabezado_titulo" 
-                            class="form-input-custom"
-                            placeholder="IEEE Computer Society"
-                            value="IEEE Computer Society"
-                            required
-                        >
+                        <input type="text" id="encabezado_titulo" name="encabezado_titulo" class="form-input-custom"
+                            placeholder="IEEE Computer Society" value="IEEE Computer Society" required>
                     </div>
 
                     <div class="form-group-custom">
                         <label class="form-label-custom" for="encabezado_subtitulo">
                             Subtítulo
                         </label>
-                        <input 
-                            type="text" 
-                            id="encabezado_subtitulo" 
-                            name="encabezado_subtitulo" 
+                        <input type="text" id="encabezado_subtitulo" name="encabezado_subtitulo"
                             class="form-input-custom"
                             placeholder="Instituto Tecnológico de Costa Rica — Campus Central Cartago"
-                            value="Instituto Tecnológico de Costa Rica — Campus Central Cartago"
-                        >
+                            value="Instituto Tecnológico de Costa Rica — Campus Central Cartago">
                         <p class="form-help-text">Opcional - puede dejarlo vacío si prefiere</p>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
                         <div class="form-group-custom">
                             <label class="form-label-custom" for="color_encabezado">Color del Encabezado</label>
-                            <input 
-                                type="color" 
-                                id="color_encabezado" 
-                                name="color_encabezado" 
-                                class="form-input-custom"
-                                value="#00629B"
-                                style="height: 44px; cursor: pointer;"
-                            >
+                            <input type="color" id="color_encabezado" name="color_encabezado" class="form-input-custom"
+                                value="#00629B" style="height: 44px; cursor: pointer;">
                             <p class="form-help-text">Color de fondo del encabezado</p>
                         </div>
 
                         <div class="form-group-custom">
                             <label class="form-label-custom" for="color_cuerpo">Color del Cuerpo</label>
-                            <input 
-                                type="color" 
-                                id="color_cuerpo" 
-                                name="color_cuerpo" 
-                                class="form-input-custom"
-                                value="#0b3f66"
-                                style="height: 44px; cursor: pointer;"
-                            >
+                            <input type="color" id="color_cuerpo" name="color_cuerpo" class="form-input-custom"
+                                value="#0b3f66" style="height: 44px; cursor: pointer;">
                             <p class="form-help-text">Color de fondo del contenido</p>
                         </div>
                     </div>
@@ -503,35 +490,20 @@
                     <p class="form-help-text" style="margin-bottom: 16px;">
                         Seleccione las imágenes que desea incluir en el encabezado (se distribuyen automáticamente)
                     </p>
-                    
+
                     <div class="checkbox-group">
                         <div class="checkbox-item">
-                            <input 
-                                type="checkbox" 
-                                id="img_ieee" 
-                                name="imagenes" 
-                                value="ieee"
-                            >
+                            <input type="checkbox" id="img_ieee" name="imagenes" value="ieee">
                             <label for="img_ieee">IEEE Logo</label>
                         </div>
-                        
+
                         <div class="checkbox-item">
-                            <input 
-                                type="checkbox" 
-                                id="img_ieee_cr" 
-                                name="imagenes" 
-                                value="ieee_cr"
-                            >
+                            <input type="checkbox" id="img_ieee_cr" name="imagenes" value="ieee_cr">
                             <label for="img_ieee_cr">IEEE Costa Rica</label>
                         </div>
-                        
+
                         <div class="checkbox-item">
-                            <input 
-                                type="checkbox" 
-                                id="img_ieee_cs" 
-                                name="imagenes" 
-                                value="ieee_cs"
-                            >
+                            <input type="checkbox" id="img_ieee_cs" name="imagenes" value="ieee_cs">
                             <label for="img_ieee_cs">IEEE Computer Society</label>
                         </div>
                     </div>
@@ -540,7 +512,7 @@
                 <!-- Sección: Contenido con Editor Rico -->
                 <div class="form-section">
                     <h3 class="form-section-title">📝 Contenido del Correo</h3>
-                    
+
                     <div class="form-group-custom">
                         <label class="form-label-custom">
                             Mensaje del Correo <span class="required">*</span>
@@ -548,15 +520,15 @@
                         <p class="form-help-text" style="margin-bottom: 12px;">
                             ✏️ Utiliza la barra de herramientas para dar formato profesional a tu mensaje
                         </p>
-                        
+
                         <!-- Editor Quill.js -->
                         <div id="editor-contenido-wrapper">
                             <div id="editor-contenido"></div>
                         </div>
-                        
+
                         <!-- Campo oculto para guardar el HTML del editor -->
                         <textarea id="detalle" name="detalle" style="display: none;"></textarea>
-                        
+
                         <p class="form-help-text" style="margin-top: 8px;">
                             💡 Puedes agregar: negritas, cursivas, listas, enlaces, colores de texto, alineación y más
                         </p>
@@ -566,79 +538,50 @@
                         <label class="form-label-custom" for="firma">
                             Firma
                         </label>
-                        <textarea 
-                            id="firma" 
-                            name="firma" 
-                            class="form-textarea-custom"
-                            placeholder="Julio Ricardo Barrios Amador
+                        <textarea id="firma" name="firma" class="form-textarea-custom" placeholder="Julio Ricardo Barrios Amador
 Section Student Representative (SSR) | IEEE Costa Rica Section
 Vocal 2 | IEEE Computer Society - Instituto Tecnológico de Costa Rica
 IEEE Member: 101781510
-julio.barrios@ieee.org"
-                        ></textarea>
+julio.barrios@ieee.org"></textarea>
                         <p class="form-help-text">Puede personalizar su firma o dejar la predeterminada</p>
                     </div>
 
                     <!-- Opciones de estilo para la firma -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 16px 0;">
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 16px 0;">
                         <div class="form-group-custom">
                             <label class="form-label-custom" for="firma_color">Color de la Firma</label>
-                            <input 
-                                type="color" 
-                                id="firma_color" 
-                                name="firma_color" 
-                                class="form-input-custom"
-                                value="#dce8f4"
-                                style="height: 44px; cursor: pointer;"
-                            >
+                            <input type="color" id="firma_color" name="firma_color" class="form-input-custom"
+                                value="#dce8f4" style="height: 44px; cursor: pointer;">
                         </div>
 
                         <div class="checkbox-item">
-                            <input 
-                                type="checkbox" 
-                                id="firma_negrita" 
-                                name="firma_estilos" 
-                                value="negrita"
-                            >
+                            <input type="checkbox" id="firma_negrita" name="firma_estilos" value="negrita">
                             <label for="firma_negrita" style="font-weight: 700;">Negrita</label>
                         </div>
 
                         <div class="checkbox-item">
-                            <input 
-                                type="checkbox" 
-                                id="firma_cursiva" 
-                                name="firma_estilos" 
-                                value="cursiva"
-                            >
+                            <input type="checkbox" id="firma_cursiva" name="firma_estilos" value="cursiva">
                             <label for="firma_cursiva" style="font-style: italic;">Cursiva</label>
                         </div>
                     </div>
 
                     <div class="form-group-custom">
-                        <label class="form-label-custom" for="viñetas_color">Color de las Viñetas (Bullet Points)</label>
-                        <input 
-                            type="color" 
-                            id="viñetas_color" 
-                            name="viñetas_color" 
-                            class="form-input-custom"
-                            value="#ffd166"
-                            style="height: 44px; cursor: pointer;"
-                        >
+                        <label class="form-label-custom" for="viñetas_color">Color de las Viñetas (Bullet
+                            Points)</label>
+                        <input type="color" id="viñetas_color" name="viñetas_color" class="form-input-custom"
+                            value="#ffd166" style="height: 44px; cursor: pointer;">
                     </div>
 
                     <div class="form-group-custom">
                         <label class="form-label-custom" for="copyright">
                             Copyright del Footer
                         </label>
-                        <input 
-                            type="text" 
-                            id="copyright" 
-                            name="copyright" 
-                            class="form-input-custom"
+                        <input type="text" id="copyright" name="copyright" class="form-input-custom"
                             placeholder="© 2026 IEEE Computer Society – Instituto Tecnológico de Costa Rica — Todos los derechos reservados."
-                            value="© 2026 IEEE Computer Society – Instituto Tecnológico de Costa Rica — Todos los derechos reservados."
-                        >
-                        <p class="form-help-text">Personalice el texto del copyright. Déjelo vacío para usar el texto predeterminado.</p>
+                            value="© 2026 IEEE Computer Society – Instituto Tecnológico de Costa Rica — Todos los derechos reservados.">
+                        <p class="form-help-text">Personalice el texto del copyright. Déjelo vacío para usar el texto
+                            predeterminado.</p>
                     </div>
                 </div>
 
@@ -670,41 +613,41 @@ julio.barrios@ieee.org"
 
     <!-- Quill.js JavaScript -->
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-    
+
     <script>
         // CONFIGURACIÓN DEL EDITOR QUILL
         const toolbarOptions = [
             // Tipo de fuente y tamaño
             [{ 'font': [] }],
             [{ 'size': ['small', false, 'large', 'huge'] }],
-            
+
             // Encabezados
             [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-            
+
             // Formatos de texto
             ['bold', 'italic', 'underline', 'strike'],
-            
+
             // Color de texto y fondo
             [{ 'color': [] }, { 'background': [] }],
-            
+
             // Listas
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+
             // Sangría
-            [{ 'indent': '-1'}, { 'indent': '+1' }],
-            
+            [{ 'indent': '-1' }, { 'indent': '+1' }],
+
             // Alineación
             [{ 'align': [] }],
-            
+
             // Scripts (superíndice y subíndice)
-            [{ 'script': 'sub'}, { 'script': 'super' }],
-            
+            [{ 'script': 'sub' }, { 'script': 'super' }],
+
             // Blockquote y código
             ['blockquote', 'code-block'],
-            
+
             // Enlace
             ['link'],
-            
+
             // Limpiar formato
             ['clean']
         ];
@@ -721,11 +664,11 @@ julio.barrios@ieee.org"
         // Sincronizar el contenido del editor con el textarea oculto
         const detalleInput = document.getElementById('detalle');
         const form = document.getElementById('correoForm');
-        
+
         // Al enviar el formulario, copiar HTML del editor al textarea
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             const htmlContent = quill.root.innerHTML;
-            
+
             // Validar que no esté vacío (Quill agrega <p><br></p> cuando está vacío)
             const text = quill.getText().trim();
             if (text.length === 0) {
@@ -733,7 +676,7 @@ julio.barrios@ieee.org"
                 alert('Por favor escriba el contenido del correo.');
                 return false;
             }
-            
+
             detalleInput.value = htmlContent;
         });
 
@@ -748,7 +691,8 @@ julio.barrios@ieee.org"
             const encabezadoSubtitulo = document.getElementById('encabezado_subtitulo').value;
             const colorEncabezado = document.getElementById('color_encabezado').value;
             const colorCuerpo = document.getElementById('color_cuerpo').value;
-            
+            const copyright = document.getElementById('copyright').value;
+
             // Obtener imágenes seleccionadas
             const imagenesSeleccionadas = [];
             document.querySelectorAll('input[name="imagenes"]:checked').forEach(checkbox => {
@@ -764,16 +708,17 @@ julio.barrios@ieee.org"
 
             // Generar vista previa
             const previewHTML = generarVistaPrevia(
-                destinatario, 
+                destinatario,
                 cc,
-                asunto, 
-                detalle, 
-                firma, 
+                asunto,
+                detalle,
+                firma,
                 imagenesSeleccionadas,
                 encabezadoTitulo,
                 encabezadoSubtitulo,
                 colorEncabezado,
-                colorCuerpo
+                colorCuerpo,
+                copyright
             );
             document.getElementById('vistaPreviewBody').innerHTML = previewHTML;
             document.getElementById('modalVistaPrevia').style.display = 'block';
@@ -783,10 +728,10 @@ julio.barrios@ieee.org"
             document.getElementById('modalVistaPrevia').style.display = 'none';
         }
 
-        function generarVistaPrevia(destinatario, cc, asunto, detalle, firma, imagenes, encabezadoTitulo, encabezadoSubtitulo, colorEncabezado, colorCuerpo) {
+        function generarVistaPrevia(destinatario, cc, asunto, detalle, firma, imagenes, encabezadoTitulo, encabezadoSubtitulo, colorEncabezado, colorCuerpo, copyright) {
             // Generar HTML de imágenes
             let imagenesHTML = '';
-            
+
             if (imagenes.length === 1) {
                 imagenesHTML = `<td colspan="2" align="center" style="padding: 0 12px;">
                     <div style="text-align: center;">
@@ -823,13 +768,14 @@ Vocal 2 | IEEE Computer Society - Instituto Tecnológico de Costa Rica
 IEEE Member: 101781510
 julio.barrios@ieee.org`;
 
-            const firmaLineas = firmaFinal.split('\n').map(linea => 
+            const firmaLineas = firmaFinal.split('\n').map(linea =>
                 `<p style="margin: 0 0 1px 0; font-size: 13px; color: #dce8f4; letter-spacing: 0.3px;">${linea}</p>`
             ).join('');
-            
+
             // Usar valores por defecto si están vacíos
             const tituloFinal = encabezadoTitulo || "IEEE Computer Society";
             const subtituloFinal = encabezadoSubtitulo || "";
+            const copyrightFinal = copyright || `&copy; ${new Date().getFullYear()} IEEE Computer Society – Instituto Tecnológico de Costa Rica &mdash; Todos los derechos reservados.`;
 
             return `
                 <div style="margin-bottom: 20px; padding: 16px; background-color: #f8f9fa; border-radius: 6px;">
@@ -837,8 +783,8 @@ julio.barrios@ieee.org`;
                     ${cc ? `<p style="margin: 0 0 8px 0;"><strong>CC:</strong> ${cc}</p>` : ''}
                     <p style="margin: 0;"><strong>Asunto:</strong> ${asunto}</p>
                 </div>
-                <div style="background-color: #f4f6f9; padding: 20px;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-width: 600px; margin: 0 auto;">
+                <div style="background-color: #f4f6f9; padding: 20px; overflow-x: auto;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-width: 600px; min-width: 320px; margin: 0 auto;">
                         <tr>
                             <td style="background-color: ${colorEncabezado}; padding: 28px 40px; text-align: center;">
                                 ${imagenes.length > 0 ? `
@@ -879,7 +825,7 @@ julio.barrios@ieee.org`;
                         <tr>
                             <td style="background-color: #f8f9fa; padding: 18px 40px; text-align: center; border-top: 1px solid #e9ecef;">
                                 <p style="margin: 0; font-size: 11px; color: #adb5bd; letter-spacing: 0.2px;">
-                                    &copy; ${new Date().getFullYear()} IEEE Computer Society – Instituto Tecnológico de Costa Rica &mdash; Todos los derechos reservados.
+                                    ${copyrightFinal}
                                 </p>
                             </td>
                         </tr>
@@ -889,13 +835,70 @@ julio.barrios@ieee.org`;
         }
 
         // Cerrar modal al hacer clic fuera de él
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             const modal = document.getElementById('modalVistaPrevia');
             if (event.target == modal) {
                 cerrarVistaPrevia();
             }
         }
+
+        // CARGAR CONFIGURACIÓN Y ALIAS
+        document.addEventListener('DOMContentLoaded', function () {
+            cargarConfiguracion();
+        });
+
+        function cargarConfiguracion() {
+            fetch('{{ url_for("api_configuracion") }}')
+                .then(response => response.json())
+                .then(data => {
+                    // Cargar alias de correos
+                    const selectAlias = document.getElementById('alias_email');
+                    const defaultValues = data.mensajes_predeterminados || {};
+                    const coloresDefecto = data.colores_defecto || {};
+
+                    // Llenar selector de alias
+                    data.alias_emails.forEach(alias => {
+                        const option = document.createElement('option');
+                        option.value = alias.email;
+                        option.textContent = `${alias.nombre} (${alias.email})`;
+                        if (alias.predeterminado) {
+                            option.selected = true;
+                        }
+                        selectAlias.appendChild(option);
+                    });
+
+                    // Cargar valores por defecto solo si no hay valores en los campos
+                    if (!document.getElementById('asunto').value && defaultValues.asunto_defecto) {
+                        document.getElementById('asunto').value = defaultValues.asunto_defecto;
+                    }
+                    if (!document.getElementById('encabezado_titulo').value && defaultValues.encabezado_titulo) {
+                        document.getElementById('encabezado_titulo').value = defaultValues.encabezado_titulo;
+                    }
+                    if (!document.getElementById('encabezado_subtitulo').value && defaultValues.encabezado_subtitulo) {
+                        document.getElementById('encabezado_subtitulo').value = defaultValues.encabezado_subtitulo;
+                    }
+                    if (!document.getElementById('copyright').value && defaultValues.copyright) {
+                        document.getElementById('copyright').value = defaultValues.copyright;
+                    }
+
+                    // Cargar colores por defecto
+                    if (coloresDefecto.color_encabezado) {
+                        document.getElementById('color_encabezado').value = coloresDefecto.color_encabezado;
+                    }
+                    if (coloresDefecto.color_cuerpo) {
+                        document.getElementById('color_cuerpo').value = coloresDefecto.color_cuerpo;
+                    }
+                    if (coloresDefecto.firma_color) {
+                        document.getElementById('firma_color').value = coloresDefecto.firma_color;
+                    }
+                    if (coloresDefecto.viñetas_color) {
+                        document.getElementById('viñetas_color').value = coloresDefecto.viñetas_color;
+                    }
+                })
+                .catch(error => console.error('Error cargando configuración:', error));
+        }
     </script>
 
 </body>
+
 </html>

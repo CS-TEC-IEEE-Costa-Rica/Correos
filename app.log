@@ -1,3 +1,4 @@
+nohup: ignoring input
 ============================================================
   Sistema de Correos Institucionales - IEEE
   Inicializando...
@@ -5,40 +6,9 @@
 [OK] Archivo Excel inicializado: /workspaces/Correos/contactos.xlsx
 [OK] Total de contactos: 0
 ============================================================
-  Sistema listo. Acceda a http://127.0.0.1:5000
+  Sistema listo. Acceda a http://127.0.0.1:5001
 ============================================================
  * Serving Flask app 'app'
  * Debug mode: off
-[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:5001
- * Running on http://10.0.2.193:5001
-[33mPress CTRL+C to quit[0m
-127.0.0.1 - - [09/Mar/2026 20:56:35] "GET /correo_personalizado HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 20:57:02] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 20:57:02] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 20:57:04] "GET /correo_personalizado HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 20:57:04] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 20:59:13] "[32mPOST /enviar_correo_personalizado HTTP/1.1[0m" 302 -
-127.0.0.1 - - [09/Mar/2026 20:59:13] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 20:59:13] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:03:15] "GET /correo_personalizado HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:03:15] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:05:16] "[32mPOST /enviar_correo_personalizado HTTP/1.1[0m" 302 -
-127.0.0.1 - - [09/Mar/2026 21:05:17] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:05:17] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:05:19] "GET /correo_personalizado HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:05:19] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:10:28] "[32mPOST /enviar_correo_personalizado HTTP/1.1[0m" 302 -
-127.0.0.1 - - [09/Mar/2026 21:10:28] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:10:28] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:10:30] "GET /correo_personalizado HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:10:30] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:16:25] "[32mPOST /enviar_correo_personalizado HTTP/1.1[0m" 302 -
-127.0.0.1 - - [09/Mar/2026 21:16:26] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:16:26] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:17:50] "GET /correo_personalizado HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:17:50] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
-127.0.0.1 - - [09/Mar/2026 21:25:02] "[32mPOST /enviar_correo_personalizado HTTP/1.1[0m" 302 -
-127.0.0.1 - - [09/Mar/2026 21:25:02] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [09/Mar/2026 21:25:02] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+Address already in use
+Port 5001 is in use by another program. Either identify and stop that program, or start the server with a different port.

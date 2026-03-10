@@ -1,0 +1,30 @@
+{
+  "email_remitente": "julio.barrios@ieee.org",
+  "email_password": "slousttfaiyapfbw",
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 587,
+  "alias_emails": [
+    {
+      "nombre": "Julio Barrios",
+      "email": "julio.barrios@ieee.org",
+      "predeterminado": true
+    },
+    {
+      "nombre": "Correo IEEE CS",
+      "email": "sbc-tec-cs@ieee.org",
+      "predeterminado": false
+    }
+  ],
+  "mensajes_predeterminados": {
+    "asunto_defecto": "Invitación a colaborar - Iniciativas estudiantiles TEC",
+    "encabezado_titulo": "IEEE Computer Society",
+    "encabezado_subtitulo": "Instituto Tecnológico de Costa Rica — Campus Central Cartago",
+    "copyright": "© 2026 IEEE Computer Society – Instituto Tecnológico de Costa Rica — Todos los derechos reservados."
+  },
+  "colores_defecto": {
+    "color_encabezado": "#00629b",
+    "color_cuerpo": "#0b3f66",
+    "firma_color": "#dce8f4",
+    "viñetas_color": "#66fffc"
+  }
+}

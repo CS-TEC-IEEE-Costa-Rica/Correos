@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEEE — Configuración del Sistema</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .config-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .config-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .config-title {
+            color: #00629B;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .config-subtitle {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #00629B;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #004A7C;
+        }
+
+        .config-card {
+            background: #ffffff;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .config-section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00629B;
+            margin: 30px 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .form-group-config {
+            margin-bottom: 20px;
+        }
+
+        .form-label-config {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-input-config {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-input-config:focus {
+            outline: none;
+            border-color: #00629B;
+            box-shadow: 0 0 0 3px rgba(0, 98, 155, 0.1);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .color-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .color-input {
+            width: 60px;
+            height: 44px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .alias-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .alias-item {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .alias-item .form-group-config {
+            margin-bottom: 0;
+        }
+
+        .btn-remove-alias {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-remove-alias:hover {
+            background: #c82333;
+        }
+
+        .btn-add-alias {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 16px 0;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add-alias:hover {
+            background: #218838;
+        }
+
+        .checkbox-alias {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-alias input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #00629B 0%, #004A7C 100%);
+            color: white;
+            padding: 14px 36px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #004A7C 0%, #00629B 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 98, 155, 0.3);
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            padding: 14px 36px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER INSTITUCIONAL -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-logo">
+                <h1>IEEE</h1>
+                <span class="header-divider"></span>
+                <p>Sistema de Correos Institucionales</p>
+            </div>
+            <div class="header-badge">Student Branch</div>
+        </div>
+    </header>
+
+    <!-- BOTÓN VOLVER AL DASHBOARD -->
+    <div style="position: absolute; top: 20px; right: 20px;">
+        <a href="{{ url_for('dashboard_principal') }}" class="btn btn-secondary" title="Volver al Dashboard"
+            style="padding: 10px 16px; font-size: 14px;">
+            ← Dashboard
+        </a>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="config-container">
+        <a href="{{ url_for('dashboard_principal') }}" class="back-button">← Volver al Dashboard</a>
+
+        <div class="config-header">
+            <h2 class="config-title">⚙️ Configuración del Sistema</h2>
+            <p class="config-subtitle">Personaliza la configuración de correos, alias y temas por defecto</p>
+        </div>
+
+        <!-- MENSAJES FLASH -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+                <span class="flash-icon">
+                    {% if category == 'success' %}&#10004;{% elif category == 'error' %}&#10006;{% elif category ==
+                    'warning' %}&#9888;{% else %}&#8505;{% endif %}
+                </span>
+                <span class="flash-text">{{ message }}</span>
+                <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="config-card">
+            <form action="{{ url_for('guardar_config') }}" method="POST" id="configForm">
+
+                <!-- SECCIÓN: Configuración SMTP -->
+                <h3 class="config-section-title">📧 Configuración SMTP</h3>
+
+                <div class="grid-2">
+                    <div class="form-group-config">
+                        <label class="form-label-config" for="email_remitente">
+                            Correo Principal
+                        </label>
+                        <input type="email" id="email_remitente" name="email_remitente" class="form-input-config"
+                            value="{{ config.get('email_remitente', '') }}">
+                    </div>
+
+                    <div class="form-group-config">
+                        <label class="form-label-config" for="email_password">
+                            Contraseña de Aplicación
+                        </label>
+                        <input type="password" id="email_password" name="email_password" class="form-input-config"
+                            value="{{ config.get('email_password', '') }}">
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group-config">
+                        <label class="form-label-config" for="smtp_server">
+                            Servidor SMTP
+                        </label>
+                        <input type="text" id="smtp_server" name="smtp_server" class="form-input-config"
+                            value="{{ config.get('smtp_server', 'smtp.gmail.com') }}">
+                    </div>
+
+                    <div class="form-group-config">
+                        <label class="form-label-config" for="smtp_port">
+                            Puerto SMTP
+                        </label>
+                        <input type="number" id="smtp_port" name="smtp_port" class="form-input-config"
+                            value="{{ config.get('smtp_port', 587) }}">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN: Alias de Correos -->
+                <h3 class="config-section-title">👥 Alias de Correos</h3>
+                <p class="help-text">Configura los alias desde los que puedas enviar correos</p>
+
+                <div class="alias-section" id="aliasContainer">
+                    {% for alias in config.get('alias_emails', []) %}
+                    <div class="alias-item" data-alias-index="">
+                        <div class="form-group-config">
+                            <label class="form-label-config">Nombre del Alias</label>
+                            <input type="text" name="alias_nombre_{{ loop.index0 }}" class="form-input-config"
+                                value="{{ alias.get('nombre', '') }}" placeholder="Ej: Julio Barrios">
+                        </div>
+                        <div class="form-group-config">
+                            <label class="form-label-config">Correo</label>
+                            <input type="email" name="alias_email_{{ loop.index0 }}" class="form-input-config"
+                                value="{{ alias.get('email', '') }}" placeholder="correo@ieee.org">
+                        </div>
+                        <div class="checkbox-alias">
+                            <input type="checkbox" name="alias_predeterminado_{{ loop.index0 }}"
+                                id="alias_pred_{{ loop.index0 }}" {% if alias.get('predeterminado', False) %}checked{%
+                                endif %}>
+                            <label for="alias_pred_{{ loop.index0 }}" style="margin-bottom: 0;">Predeterminado</label>
+                        </div>
+                        <button type="button" class="btn-remove-alias" onclick="removerAlias(this)">Eliminar</button>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <input type="hidden" name="alias_count" id="aliasCount"
+                    value="{{ config.get('alias_emails', [])|length }}">
+
+                <button type="button" class="btn-add-alias" onclick="agregarAlias()">+ Agregar Alias</button>
+
+                <!-- SECCIÓN: Mensajes Predeterminados -->
+                <h3 class="config-section-title">📝 Mensajes Predeterminados</h3>
+
+                <div class="form-group-config">
+                    <label class="form-label-config" for="asunto_defecto">
+                        Asunto por Defecto
+                    </label>
+                    <input type="text" id="asunto_defecto" name="asunto_defecto" class="form-input-config"
+                        value="{{ config.get('mensajes_predeterminados', {}).get('asunto_defecto', '') }}">
+                </div>
+
+                <div class="form-group-config">
+                    <label class="form-label-config" for="encabezado_titulo">
+                        Título del Encabezado
+                    </label>
+                    <input type="text" id="encabezado_titulo" name="encabezado_titulo" class="form-input-config"
+                        value="{{ config.get('mensajes_predeterminados', {}).get('encabezado_titulo', '') }}">
+                </div>
+
+                <div class="form-group-config">
+                    <label class="form-label-config" for="encabezado_subtitulo">
+                        Subtítulo del Encabezado
+                    </label>
+                    <input type="text" id="encabezado_subtitulo" name="encabezado_subtitulo" class="form-input-config"
+                        value="{{ config.get('mensajes_predeterminados', {}).get('encabezado_subtitulo', '') }}">
+                </div>
+
+                <div class="form-group-config">
+                    <label class="form-label-config" for="copyright">
+                        Copyright del Footer
+                    </label>
+                    <input type="text" id="copyright" name="copyright" class="form-input-config"
+                        value="{{ config.get('mensajes_predeterminados', {}).get('copyright', '') }}">
+                    <p class="help-text">Personaliza el texto del copyright en los correos</p>
+                </div>
+
+                <!-- SECCIÓN: Colores por Defecto -->
+                <h3 class="config-section-title">🎨 Colores por Defecto</h3>
+
+                <div class="grid-3">
+                    <div class="form-group-config">
+                        <label class="form-label-config">Color Encabezado</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="color_encabezado" name="color_encabezado" class="color-input"
+                                value="{{ config.get('colores_defecto', {}).get('color_encabezado', '#00629B') }}">
+                            <input type="text" class="form-input-config" style="flex: 1; margin: 0;" readonly
+                                id="color_encabezado_hex"
+                                value="{{ config.get('colores_defecto', {}).get('color_encabezado', '#00629B') }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group-config">
+                        <label class="form-label-config">Color Cuerpo</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="color_cuerpo" name="color_cuerpo" class="color-input"
+                                value="{{ config.get('colores_defecto', {}).get('color_cuerpo', '#0b3f66') }}">
+                            <input type="text" class="form-input-config" style="flex: 1; margin: 0;" readonly
+                                id="color_cuerpo_hex"
+                                value="{{ config.get('colores_defecto', {}).get('color_cuerpo', '#0b3f66') }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group-config">
+                        <label class="form-label-config">Color Firma</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="firma_color" name="firma_color" class="color-input"
+                                value="{{ config.get('colores_defecto', {}).get('firma_color', '#dce8f4') }}">
+                            <input type="text" class="form-input-config" style="flex: 1; margin: 0;" readonly
+                                id="firma_color_hex"
+                                value="{{ config.get('colores_defecto', {}).get('firma_color', '#dce8f4') }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group-config">
+                        <label class="form-label-config">Color Viñetas</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="viñetas_color" name="viñetas_color" class="color-input"
+                                value="{{ config.get('colores_defecto', {}).get('viñetas_color', '#ffd166') }}">
+                            <input type="text" class="form-input-config" style="flex: 1; margin: 0;" readonly
+                                id="viñetas_color_hex"
+                                value="{{ config.get('colores_defecto', {}).get('viñetas_color', '#ffd166') }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCIONES -->
+                <div class="form-actions">
+                    <a href="{{ url_for('dashboard_principal') }}" class="btn-cancel">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn-submit">
+                        💾 Guardar Configuración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Sincronizar colores hexadecimales
+        document.getElementById('color_encabezado').addEventListener('change', function () {
+            document.getElementById('color_encabezado_hex').value = this.value;
+        });
+        document.getElementById('color_cuerpo').addEventListener('change', function () {
+            document.getElementById('color_cuerpo_hex').value = this.value;
+        });
+        document.getElementById('firma_color').addEventListener('change', function () {
+            document.getElementById('firma_color_hex').value = this.value;
+        });
+        document.getElementById('viñetas_color').addEventListener('change', function () {
+            document.getElementById('viñetas_color_hex').value = this.value;
+        });
+
+        function agregarAlias() {
+            const container = document.getElementById('aliasContainer');
+            const count = parseInt(document.getElementById('aliasCount').value);
+
+            const nuevoAlias = document.createElement('div');
+            nuevoAlias.className = 'alias-item';
+            nuevoAlias.innerHTML = `
+                <div class="form-group-config">
+                    <label class="form-label-config">Nombre del Alias</label>
+                    <input 
+                        type="text" 
+                        name="alias_nombre_${count}" 
+                        class="form-input-config"
+                        placeholder="Ej: Julio Barrios"
+                    >
+                </div>
+                <div class="form-group-config">
+                    <label class="form-label-config">Correo</label>
+                    <input 
+                        type="email" 
+                        name="alias_email_${count}" 
+                        class="form-input-config"
+                        placeholder="correo@ieee.org"
+                    >
+                </div>
+                <div class="checkbox-alias">
+                    <input 
+                        type="checkbox" 
+                        name="alias_predeterminado_${count}"
+                        id="alias_pred_${count}"
+                    >
+                    <label for="alias_pred_${count}" style="margin-bottom: 0;">Predeterminado</label>
+                </div>
+                <button type="button" class="btn-remove-alias" onclick="removerAlias(this)">Eliminar</button>
+            `;
+
+            container.appendChild(nuevoAlias);
+            document.getElementById('aliasCount').value = count + 1;
+        }
+
+        function removerAlias(btn) {
+            btn.closest('.alias-item').remove();
+        }
+    </script>
+
+</body>
+
+</html>

@@ -16,6 +16,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from datetime import datetime
+import json
 
 import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -28,18 +29,10 @@ load_dotenv()
 # CONFIGURACIÓN DEL SISTEMA
 # ==============================================================================
 
-# Credenciales SMTP: usa variables de entorno (archivo .env o variables del sistema)
-EMAIL_REMITENTE = os.getenv("EMAIL_REMITENTE", "")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
-EMAIL_PASSWORD = EMAIL_PASSWORD.replace(" ", "")
-
-# Configuración del servidor SMTP (por defecto Gmail con TLS)
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-
 # Rutas de archivos
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_PATH = os.path.join(BASE_DIR, "contactos.xlsx")
+CONFIG_PATH = os.path.join(BASE_DIR, "configuracion.json")
 IMAGES_DIR = os.path.join(BASE_DIR, "images")
 IEEE_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee.png")
 IEEE_CS_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee cs imagen.png")
@@ -48,6 +41,85 @@ IEEE_CR_LOGO_PATH = os.path.join(IMAGES_DIR, "ieee costa rica.png")
 # Clave secreta para sesiones Flask
 SECRET_KEY = os.getenv(
     "FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
+
+# ==============================================================================
+# FUNCIONES DE CONFIGURACIÓN
+# ==============================================================================
+
+
+def cargar_configuracion():
+    """
+    Carga la configuración desde el archivo JSON.
+    Si no existe, crea uno con valores por defecto.
+    """
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error al cargar configuración: {e}")
+
+    # Configuración por defecto
+    return {
+        "email_remitente": os.getenv("EMAIL_REMITENTE", ""),
+        "email_password": os.getenv("EMAIL_PASSWORD", "").replace(" ", ""),
+        "smtp_server": os.getenv("SMTP_SERVER", "smtp.gmail.com"),
+        "smtp_port": int(os.getenv("SMTP_PORT", "587")),
+        "alias_emails": [
+            {
+                "nombre": "Principal",
+                "email": os.getenv("EMAIL_REMITENTE", ""),
+                "predeterminado": True
+            }
+        ],
+        "mensajes_predeterminados": {
+            "asunto_defecto": "Invitación a colaborar - Iniciativas estudiantiles TEC",
+            "encabezado_titulo": "IEEE Computer Society",
+            "encabezado_subtitulo": "Instituto Tecnológico de Costa Rica — Campus Central Cartago",
+            "copyright": "© 2026 IEEE Computer Society – Instituto Tecnológico de Costa Rica — Todos los derechos reservados."
+        },
+        "colores_defecto": {
+            "color_encabezado": "#00629B",
+            "color_cuerpo": "#0b3f66",
+            "firma_color": "#dce8f4",
+            "viñetas_color": "#ffd166"
+        }
+    }
+
+
+def guardar_configuracion(config):
+    """
+    Guarda la configuración en el archivo JSON.
+    """
+    try:
+        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error al guardar configuración: {e}")
+        return False
+
+
+def obtener_configuracion():
+    """
+    Obtiene la configuración actual del sistema.
+    """
+    return cargar_configuracion()
+
+
+# Cargar configuración desde JSON o .env
+_CONFIG = obtener_configuracion()
+
+# Credenciales SMTP: usa configuración JSON o variables de entorno
+EMAIL_REMITENTE = os.getenv(
+    "EMAIL_REMITENTE", _CONFIG.get("email_remitente", "")).strip()
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", _CONFIG.get(
+    "email_password", "")).replace(" ", "").strip()
+
+# Configuración del servidor SMTP (por defecto Gmail con TLS)
+SMTP_SERVER = os.getenv("SMTP_SERVER", _CONFIG.get(
+    "smtp_server", "smtp.gmail.com")).strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", str(_CONFIG.get("smtp_port", 587))))
 
 # ==============================================================================
 # INICIALIZACIÓN DE LA APLICACIÓN FLASK
@@ -924,14 +996,23 @@ julio.barrios@ieee.org"""
 def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, imagenes_seleccionadas,
                                      encabezado_titulo="", encabezado_subtitulo="",
                                      firma_color="#dce8f4", firma_estilos=None, viñetas_color="#ffd166",
-                                     color_encabezado="#00629B", color_cuerpo="#0b3f66", cc_list=None, copyright=""):
+                                     color_encabezado="#00629B", color_cuerpo="#0b3f66", cc_list=None, copyright="", alias_email=""):
     """
     Envía un correo electrónico personalizado usando SMTP con TLS.
     Permite seleccionar las imágenes del encabezado y personalizar estilos de firma.
+    Soporta envío desde alias de correo.
     El contenido HTML es generado directamente del editor (contenteditable).
     Retorna un diccionario con el resultado del envío.
     """
-    if not EMAIL_REMITENTE or not EMAIL_PASSWORD:
+    # La autenticación SMTP debe hacerse con la cuenta principal.
+    # El alias se usa solo como remitente visible (header From).
+    smtp_login_user = EMAIL_REMITENTE
+    email_remitente = alias_email if alias_email else EMAIL_REMITENTE
+    email_password = EMAIL_PASSWORD
+    smtp_server = SMTP_SERVER
+    smtp_port = SMTP_PORT
+
+    if not email_remitente or not email_password:
         return {
             "exito": False,
             "mensaje": "Faltan credenciales SMTP. Configure EMAIL_REMITENTE y EMAIL_PASSWORD en variables de entorno."
@@ -957,7 +1038,7 @@ def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, image
 
     # Usamos multipart/related para soportar imágenes inline referenciadas por CID.
     mensaje = MIMEMultipart("related")
-    mensaje["From"] = EMAIL_REMITENTE
+    mensaje["From"] = email_remitente
     mensaje["To"] = destinatario
     # Añadir CC en cabecera si se proporcionó
     if cc_list:
@@ -990,17 +1071,17 @@ def enviar_correo_personalizado_smtp(destinatario, asunto, detalle, firma, image
 
     try:
         # Conexión SMTP con TLS
-        servidor = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        servidor = smtplib.SMTP(smtp_server, smtp_port)
         servidor.ehlo()
         servidor.starttls()
         servidor.ehlo()
-        servidor.login(EMAIL_REMITENTE, EMAIL_PASSWORD)
+        servidor.login(smtp_login_user, email_password)
         # Enviar a destinatario principal y a los CC (si los hay)
         destinatarios_envio = [destinatario]
         if cc_list:
             destinatarios_envio += cc_list
         servidor.sendmail(
-            EMAIL_REMITENTE, destinatarios_envio, mensaje.as_string())
+            email_remitente, destinatarios_envio, mensaje.as_string())
         servidor.quit()
 
         return {"exito": True, "mensaje": f"Correo enviado exitosamente a {destinatario}"}
@@ -1281,6 +1362,104 @@ def eliminar(id):
     return redirect(url_for("contactos", **return_params))
 
 
+@app.route("/configuracion", methods=["GET"])
+def configuracion():
+    """
+    Página de configuración del sistema.
+    Permite personalizar alias de correos, mensajes y colores por defecto.
+    """
+    config = obtener_configuracion()
+    return render_template("configuracion.html", config=config)
+
+
+@app.route("/guardar_configuracion", methods=["POST"])
+def guardar_config():
+    """
+    Guarda la configuración del sistema.
+    """
+    try:
+        config = obtener_configuracion()
+
+        # Actualizar configuración general
+        config["email_remitente"] = request.form.get(
+            "email_remitente", "").strip()
+        config["email_password"] = request.form.get(
+            "email_password", "").strip().replace(" ", "")
+        config["smtp_server"] = request.form.get(
+            "smtp_server", "smtp.gmail.com").strip()
+        config["smtp_port"] = int(request.form.get("smtp_port", "587"))
+
+        # Actualizar mensajes predeterminados
+        config["mensajes_predeterminados"]["asunto_defecto"] = request.form.get(
+            "asunto_defecto", "").strip()
+        config["mensajes_predeterminados"]["encabezado_titulo"] = request.form.get(
+            "encabezado_titulo", "").strip()
+        config["mensajes_predeterminados"]["encabezado_subtitulo"] = request.form.get(
+            "encabezado_subtitulo", "").strip()
+        config["mensajes_predeterminados"]["copyright"] = request.form.get(
+            "copyright", "").strip()
+
+        # Actualizar colores por defecto
+        config["colores_defecto"]["color_encabezado"] = request.form.get(
+            "color_encabezado", "#00629B").strip()
+        config["colores_defecto"]["color_cuerpo"] = request.form.get(
+            "color_cuerpo", "#0b3f66").strip()
+        config["colores_defecto"]["firma_color"] = request.form.get(
+            "firma_color", "#dce8f4").strip()
+        config["colores_defecto"]["viñetas_color"] = request.form.get(
+            "viñetas_color", "#ffd166").strip()
+
+        # Procesar alias de emails
+        alias_emails = []
+        alias_count = int(request.form.get("alias_count", "0"))
+
+        for i in range(alias_count):
+            alias_nombre = request.form.get(f"alias_nombre_{i}", "").strip()
+            alias_email = request.form.get(f"alias_email_{i}", "").strip()
+            alias_predeterminado = request.form.get(
+                f"alias_predeterminado_{i}") == "on"
+
+            if alias_nombre and alias_email:
+                alias_emails.append({
+                    "nombre": alias_nombre,
+                    "email": alias_email,
+                    "predeterminado": alias_predeterminado
+                })
+
+        if alias_emails:
+            config["alias_emails"] = alias_emails
+
+        # Guardar configuración
+        if guardar_configuracion(config):
+            flash("Configuración guardada correctamente.", "success")
+            # Actualizar variables globales
+            global EMAIL_REMITENTE, EMAIL_PASSWORD, SMTP_SERVER, SMTP_PORT, _CONFIG
+            _CONFIG = config
+            EMAIL_REMITENTE = config.get("email_remitente", "")
+            EMAIL_PASSWORD = config.get("email_password", "")
+            SMTP_SERVER = config.get("smtp_server", "smtp.gmail.com")
+            SMTP_PORT = config.get("smtp_port", 587)
+        else:
+            flash("Error al guardar la configuración.", "error")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "error")
+
+    return redirect(url_for("configuracion"))
+
+
+@app.route("/api/configuracion", methods=["GET"])
+def api_configuracion():
+    """
+    API para obtener la configuración actual (usada por JavaScript).
+    """
+    config = obtener_configuracion()
+    return jsonify({
+        "mensajes_predeterminados": config.get("mensajes_predeterminados", {}),
+        "colores_defecto": config.get("colores_defecto", {}),
+        "alias_emails": config.get("alias_emails", [])
+    })
+
+
 @app.route("/correo_personalizado", methods=["GET"])
 def correo_personalizado():
     """
@@ -1300,6 +1479,9 @@ def enviar_correo_personalizado():
     asunto = request.form.get("asunto", "").strip()
     detalle = request.form.get("detalle", "").strip()
     firma = request.form.get("firma", "").strip()
+
+    # Alias de correo desde el que se enviaría
+    alias_email = request.form.get("alias_email", "").strip()
 
     # Nuevos campos personalizables
     encabezado_titulo = request.form.get(
@@ -1376,7 +1558,8 @@ def enviar_correo_personalizado():
         color_encabezado=color_encabezado,
         color_cuerpo=color_cuerpo,
         copyright=copyright,
-        cc_list=cc_list
+        cc_list=cc_list,
+        alias_email=alias_email
     )
 
     if resultado["exito"]:
@@ -1410,7 +1593,8 @@ def inicializar_sistema():
         print("[ERROR] No se pudo inicializar el archivo Excel")
 
     print("=" * 60)
-    print("  Sistema listo. Acceda a http://127.0.0.1:5000")
+    puerto = int(os.getenv("FLASK_PORT", "5001"))
+    print(f"  Sistema listo. Acceda a http://127.0.0.1:{puerto}")
     print("=" * 60)
 
 
